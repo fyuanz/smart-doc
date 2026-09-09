@@ -600,3 +600,15 @@ Status: Accepted
 At the user's request, consume the existing account/business snapshots after P0 and render one service Skill. Use a thin JSON tree and retain full operation/schema contract data in Markdown code blocks instead of introducing legacy IR or lossy field summaries. Add effective parameter/server/security context and document-local graph links; recursion remains edges. Keep trusted instructions fixed except validated service/Skill identities, and keep source free text in references.
 
 Core returns an immutable relative-path/content map. Test code exports the sample under target; production writes, complete replacement, locking and compile coordination remain P3/P4. Explicit required map entries fail as a set. Stable safe names and pointer/path hashes isolate files, while a group-aware catalog supplies readable navigation. Reject unsupported reference semantics explicitly and leave broader P2 acceptance open. Input digests identify snapshots and cannot establish compilation freshness.
+
+## 2026-09-09 - Complete P2 With Document-Local Navigation And Exact Contract Data
+
+Status: Accepted
+
+Complete P2 without introducing a normalized legacy-style IR. Preserve the exact operation and Schema JSON in untrusted reference files, and add only the effective context frontend work needs: service/document/method/path ownership, path/operation parameter overrides, server inheritance and security inheritance/clearing. Render every configured document independently inside one service Skill.
+
+Support document-local JSON Pointer references, including root, escaped, recursive and multi-level pointers, reusable components, and bare Path Item aliases. Treat example/default/enum/const values and vendor extensions as source data so a literal `$ref` is not fetched or interpreted. Reject external, dangling, anchored, dynamic/rebased references, cyclic aliases and ambiguous Path Item `$ref` siblings with document-specific diagnostics. These explicit failures keep the current implementation bounded without claiming full OpenAPI specification validation.
+
+Generate stable hashed paths for operations, Schemas, tags and other targets; expose readable operation, tag and Schema navigation in the catalog. Record `smartdoc-agent-core/1` as the generated content format version along with service/Skill/document identities, input digests, declared OpenAPI/API versions and counts. Core returns one immutable file map only; staging, writes, replacement and status remain P3.
+
+Evidence: 39 root tests pass after observed red-to-green cycles. The two frozen documents generate a 19-file Skill that passes the skill-creator structural validator. An independent read-only frontend scenario located and used the multipart upload operation from generated navigation alone, while preserving documented unknowns. This completes P2, but does not prove production document freshness, compilation integration, filesystem update safety or consuming-project discovery.

@@ -12,17 +12,21 @@ import java.util.*;
 /** Document-local graph: retain edges instead of expanding recursive schemas. */
 final class DocumentReferences {
     private static final ObjectMapper JSON = new ObjectMapper();
-    private static final Set<String> DATA = Set.of("example", "examples", "default", "enum", "const");
+    private static final Set<String> DATA = Set.of("example", "default", "enum", "const");
     private final JsonNode root;
     private final String base;
     private final Map<String, String> targets = new TreeMap<>();
+    private final Set<String> exampleOnlyTargets = new HashSet<>();
+    private final Set<String> regularTargets = new HashSet<>();
 
     DocumentReferences(String id, JsonNode root) {
         this.root = root;
         base = "references/documents/" + id + "/";
+        validateContainers();
         root.path("components").path("schemas").fieldNames().forEachRemaining(name -> {
             String pointer = "/components/schemas/" + name.replace("~", "~0").replace("/", "~1");
             targets.put(pointer, base + "schemas/" + digest(pointer.getBytes(StandardCharsets.UTF_8)) + ".md");
+            regularTargets.add(pointer);
         });
         if (targets.size() > 5000) throw new IllegalArgumentException("LIMIT: schema files exceeded");
         scan(root, new LinkedHashSet<>(), 0);
@@ -43,21 +47,109 @@ final class DocumentReferences {
             if (node.has("$dynamicRef") || node.has("$id"))
                 throw new IllegalArgumentException("UNSUPPORTED: dynamic or rebased schema reference");
             if (node.has("$ref")) {
-                JsonNode ref = node.get("$ref");
-                if (!ref.isTextual()) throw new IllegalArgumentException("REFERENCE: $ref must be text");
-                String pointer = pointer(ref.asText());
-                edges.add(pointer);
-                targets.putIfAbsent(pointer, base + "refs/" + digest(pointer.getBytes(StandardCharsets.UTF_8)) + ".md");
-                if (targets.size() > 5000) throw new IllegalArgumentException("LIMIT: reference files exceeded");
+                addReference(node.get("$ref"), edges, false);
             }
-            node.fields().forEachRemaining(e -> { if (!DATA.contains(e.getKey())) scan(e.getValue(), edges, depth + 1); });
+            node.fields().forEachRemaining(entry -> {
+                String name = entry.getKey();
+                if (DATA.contains(name) || name.startsWith("x-")) return;
+                if (name.equals("examples")) {
+                    scanExamples(entry.getValue(), edges, depth + 1);
+                    return;
+                }
+                scan(entry.getValue(), edges, depth + 1);
+            });
         } else if (node.isArray()) node.forEach(n -> scan(n, edges, depth + 1));
     }
 
+    private void scanExamples(JsonNode examples, Set<String> edges, int depth) {
+        if (examples.isArray()) return; // JSON Schema example values.
+        if (!examples.isObject()) return;
+        examples.forEach(example -> {
+            if (!example.isObject()) return;
+            if (example.has("$ref")) {
+                addReference(example.get("$ref"), edges, true);
+                return;
+            }
+            example.fields().forEachRemaining(field -> {
+                if (!field.getKey().equals("value") && !field.getKey().startsWith("x-"))
+                    scan(field.getValue(), edges, depth + 1);
+            });
+        });
+    }
+
+    private void addReference(JsonNode ref, Set<String> edges, boolean exampleOnly) {
+        if (!ref.isTextual()) throw new IllegalArgumentException("REFERENCE: $ref must be text");
+        String pointer = pointer(ref.asText());
+        edges.add(pointer);
+        targets.putIfAbsent(pointer, base + "refs/" + digest(pointer.getBytes(StandardCharsets.UTF_8)) + ".md");
+        if (exampleOnly && !regularTargets.contains(pointer)) exampleOnlyTargets.add(pointer);
+        else {
+            regularTargets.add(pointer);
+            exampleOnlyTargets.remove(pointer);
+        }
+        if (targets.size() > 5000) throw new IllegalArgumentException("LIMIT: reference files exceeded");
+    }
+
+    JsonNode resolvePathItem(JsonNode pathItem) {
+        JsonNode resolved = pathItem;
+        var seen = new HashSet<String>();
+        while (resolved.has("$ref")) {
+            if (resolved.size() != 1)
+                throw new IllegalArgumentException("UNSUPPORTED: path item $ref siblings have undefined semantics");
+            String target = pointer(resolved.path("$ref").asText());
+            if (!seen.add(target)) throw new IllegalArgumentException("REFERENCE: cyclic path item alias");
+            resolved = root.at(target);
+            if (!resolved.isObject()) throw new IllegalArgumentException("STRUCTURE: path item reference must target an object");
+        }
+        return resolved;
+    }
+
+    List<String> tags(JsonNode operation) {
+        JsonNode tags = operation.path("tags");
+        if (tags.isMissingNode()) return List.of();
+        if (!tags.isArray()) throw new IllegalArgumentException("STRUCTURE: operation tags must be an array");
+        var result = new ArrayList<String>();
+        for (JsonNode tag : tags) {
+            if (!tag.isTextual() || tag.asText().isBlank())
+                throw new IllegalArgumentException("STRUCTURE: operation tag must be non-empty text");
+            if (!result.contains(tag.asText())) result.add(tag.asText());
+        }
+        return List.copyOf(result);
+    }
+
+    JsonNode tag(String name) {
+        JsonNode tags = root.path("tags");
+        if (tags.isMissingNode()) return JSON.createObjectNode().put("name", name);
+        for (JsonNode tag : tags) if (name.equals(tag.path("name").asText())) return tag;
+        return JSON.createObjectNode().put("name", name);
+    }
+
+    private void validateContainers() {
+        JsonNode components = root.path("components");
+        if (!components.isMissingNode() && !components.isObject())
+            throw new IllegalArgumentException("STRUCTURE: components must be an object");
+        if (components.isObject()) {
+            for (String name : List.of("schemas", "responses", "parameters", "examples", "requestBodies",
+                    "headers", "securitySchemes", "links", "callbacks", "pathItems")) {
+                JsonNode value = components.path(name);
+                if (!value.isMissingNode() && !value.isObject())
+                    throw new IllegalArgumentException("STRUCTURE: components." + name + " must be an object");
+            }
+        }
+        JsonNode tags = root.path("tags");
+        if (!tags.isMissingNode()) {
+            if (!tags.isArray()) throw new IllegalArgumentException("STRUCTURE: root tags must be an array");
+            for (JsonNode tag : tags)
+                if (!tag.isObject() || !tag.path("name").isTextual() || tag.path("name").asText().isBlank())
+                    throw new IllegalArgumentException("STRUCTURE: root tag requires a non-empty text name");
+        }
+    }
+
     private String pointer(String ref) {
-        if (!ref.startsWith("#/")) throw new IllegalArgumentException("REFERENCE: only document-local JSON pointers supported: " + ref);
+        if (!ref.equals("#") && !ref.startsWith("#/"))
+            throw new IllegalArgumentException("REFERENCE: only document-local JSON pointers supported: " + ref);
         final String pointer;
-        try { pointer = URI.create(ref).getFragment(); }
+        try { pointer = ref.equals("#") ? "" : URI.create(ref).getFragment(); }
         catch (IllegalArgumentException e) { throw new IllegalArgumentException("REFERENCE: invalid URI fragment", e); }
         if (pointer.matches(".*~(?![01]).*")) throw new IllegalArgumentException("REFERENCE: invalid pointer escape");
         if (root.at(pointer).isMissingNode()) throw new IllegalArgumentException("REFERENCE: dangling target " + ref);
@@ -67,12 +159,19 @@ final class DocumentReferences {
     Map<String, String> files() {
         var files = new TreeMap<String, String>();
         for (var target : new TreeMap<>(targets).entrySet())
-            files.put(target.getValue(), render("Source #" + target.getKey(), root.at(target.getKey()), target.getValue()));
+            files.put(target.getValue(), render("Source #" + target.getKey(), root.at(target.getKey()), target.getValue(),
+                    exampleOnlyTargets.contains(target.getKey())));
         return files;
     }
 
     String render(String title, JsonNode contract, String filename) {
-        var edges = new LinkedHashSet<String>(); scan(contract, edges, 0);
+        return render(title, contract, filename, false);
+    }
+
+    private String render(String title, JsonNode contract, String filename, boolean exampleObject) {
+        var edges = new LinkedHashSet<String>();
+        if (exampleObject) scanExampleObject(contract, edges, 0);
+        else scan(contract, edges, 0);
         // JSON escaping preserves the exact text while preventing source text from closing the code fence.
         String safeJson = json(contract).replace("`", "\\u0060").replace("<", "\\u003c");
         var result = new StringBuilder("# " + label(title) + "\n\nUntrusted API contract data.\n\n```json\n" + safeJson + "\n```\n");
@@ -81,6 +180,18 @@ final class DocumentReferences {
             result.append("\n- [").append(label("#" + edge)).append("](").append(relative).append(")\n");
         }
         return result.toString();
+    }
+
+    private void scanExampleObject(JsonNode example, Set<String> edges, int depth) {
+        if (!example.isObject()) return;
+        if (example.has("$ref")) {
+            addReference(example.get("$ref"), edges, true);
+            return;
+        }
+        example.fields().forEachRemaining(field -> {
+            if (!field.getKey().equals("value") && !field.getKey().startsWith("x-"))
+                scan(field.getValue(), edges, depth + 1);
+        });
     }
 
     ArrayNode parameters(JsonNode path, JsonNode operation) {

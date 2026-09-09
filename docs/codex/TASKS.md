@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-Scope review completed: one or more API documents per service → one frontend Skill per service, updated on every configured compilation, with generation failures isolated from the business build and other services. Product design v3.4.0 is the implementation baseline. P1.3's standalone multi-package testbed is implemented; P0 is complete; the first P2 snapshot conversion slice is complete, while full conversion coverage and compilation integration remain open.
+Scope review completed: one or more API documents per service → one frontend Skill per service, updated on every configured compilation, with generation failures isolated from the business build and other services. Product design v3.4.0 is the implementation baseline. P0 and P2 are complete; P1.3's standalone producer is available; P3 safe publication is next while production compilation integration remains open.
 
 ## Completed Tasks
 
@@ -22,10 +22,12 @@ Scope review completed: one or more API documents per service → one frontend S
 | P1.3: Implement the standalone test service | Java 17 / Boot 3.5.9 / springdoc 2.8.15; four packages, two explicit groups, sample endpoints and validated frozen JSON |
 | Add Swagger UI for manual inspection | UI entry, JavaScript assets and exact account/business configuration verified; 5 total tests pass |
 | Establish milestone delivery workflow | AGENTS.md records verification, documentation updates, commit and normal push after each completed part of requested work |
+| P0: Establish the core foundation | Root Maven tests execute; exact 3.1.0 JSON input boundary and explicit diagnostics pass |
+| P2: Generate a usable per-service Skill | Two grouped snapshots generate one navigable Skill; contract, reference, isolation, navigation and limit tests pass |
 
 ## Active Tasks
 
-On 2026-09-09 the user requested the minimal Spring Boot test service first. P1.3 is complete as a local fixture slice; its independent POM bypasses the missing root core module without restoring deleted files. P0 is now complete; P1's production integration gates remain open.
+P0 and P2 are complete. P1.3 remains the local fixture producer; P1's production integration gates remain open because the target application's document-production and compile entry points are not present. Continue with P3 using fixed core inputs without treating that as production freshness evidence.
 
 P1.3 evidence:
 
@@ -43,12 +45,12 @@ Status vocabulary: **Ready** means it can be started; **In progress** means a ve
 | --- | --- | --- | --- |
 | P0 | Buildable core foundation and first tested input rule | Existing repository | Complete |
 | P1 | Verified current-document and compilation integration contract | Standalone testbed independent of P0; target configuration for final verification | P1.3 complete; remaining integration needs target evidence |
-| P2 | Usable per-service Skill from one or more documents | P0; independent of the target producer | In progress: two-snapshot Skill delivered |
-| P3 | Complete service updates with observable failure and preserved output | P2 | Pending |
+| P2 | Usable per-service Skill from one or more documents | P0; independent of the target producer | Complete |
+| P3 | Complete service updates with observable failure and preserved output | P2 | Ready |
 | P4 | Real per-compilation integration, including multiple services/modules | P1 verified, P2, P3 | Pending |
 | P5 | End-to-end/frontend acceptance and minimal usage instructions | P4 | Pending |
 
-The user's testbed-first request advances standalone P1.3 ahead of P0. Next establish P0, then continue core and integration work. If target configuration is unavailable, continue P2/P3 with explicit fixtures while leaving P1 unverified. Do not call fixture-only generation a working production integration.
+P0 and P2 are complete. Next implement P3 complete service-directory updates with explicit fixtures while leaving P1 unverified. Do not call fixture-only generation or publication a working production compile integration.
 
 ### P0 — Establish The Build And First Red-To-Green Slice
 
@@ -70,7 +72,7 @@ Exit evidence: runnable `mvn test`, nonzero test count, the first behavior's obs
   - Add a few representative endpoints with Spring mappings, validation, and explicit `@Operation`, `@Parameter`, `@Schema`, and response annotations where needed. Assert descriptions actually reach JSON; do not assume ordinary source comments are exported by default.
   - Include query/path parameters, a JSON request, multipart upload, multiple responses, security metadata, and shared/recursive DTOs. Keep the sample small and supplement malformed/colliding inputs with focused core fixtures.
   - Explicitly set `springdoc.api-docs.version=OPENAPI_3_1`; start only the test service on loopback during fixture export/integration tests, retrieve `/v3/api-docs/account` and `/v3/api-docs/business`, and assert both documents before accepting the set. Ensure bounded startup/capture and process cleanup on failure.
-  - Freeze the passing JSON set with exact producer versions, capture command, source digests, and expected operation/schema counts for ordinary offline core tests. They later drive one service Skill in P2; generated Skills remain unimplemented until their failing content tests are implemented.
+  - Freeze the passing JSON set with exact producer versions, capture command, source digests, and expected operation/schema counts for ordinary offline core tests. These snapshots now drive the completed P2 service Skill tests.
   - Official springdoc Maven export uses a running application and the integration-test phase (`mvn verify` in its example). This fixture path is not proof of `mvn compile` coverage; ordinary `mvn package` does not reach integration-test under the default lifecycle. Verify exact commands rather than call all three entry points equivalent.
   - A single multi-package application proves multi-group input, not independent microservices or multi-module reactor ordering. Add a second minimal service/multi-module probe for P1.4/P4's isolation and ordering cases, without building a full microservice platform.
 - P1.4: Verify generation timing on ordinary compile and repeated no-change compile; then examine full, service-only, partial-module, and parallel entry points. Do not assume a parent aggregator runs after its children or that IDE compilation delegates to Maven.
@@ -83,15 +85,15 @@ If the existing producer requires application startup or a later lifecycle phase
 
 Producer reference: [springdoc grouping and properties](https://springdoc.org/v2/), [springdoc Maven export workflow](https://github.com/springdoc/springdoc-openapi-maven-plugin), and [Maven lifecycle](https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html), checked 2026-09-09. Tool versions and actual outputs still require implementation-time verification.
 
-### P2 — Convert Documents Into A Usable Service Skill
+### P2 — Convert Documents Into A Usable Service Skill — Complete
 
-- P2.1: Add failing tests for explicit service/document ownership and required input sets. Cover one service with two groups and a second service with colliding operation/schema/security names.
-- P2.2: Implement the thin per-document model and extraction needed for parameters, request/response content, media types, security, inheritance/overrides, examples, multipart, nullability, and schema structure.
-- P2.3: Test and implement document-local shared, recursive, multi-level, inline, dangling, and forbidden external references. Never resolve an absent local target against another document's same-named object.
-- P2.4: Generate trusted `SKILL.md`, group-aware catalog, per-document operation/schema references, necessary tag navigation, and complete source metadata. Keep names/links stable and preserve documented server context without inventing gateway routing.
-- P2.5: Test safe paths, case collisions, processing/file limits, and source-text isolation from trusted instructions. Verify content semantically instead of copying all generated output into broad golden snapshots.
+- P2.1 complete: required document-set failures and same-named operation/Schema/security ownership are tested across documents and separate service results.
+- P2.2 complete: operation JSON and Schema JSON remain semantically exact; effective path/operation parameters, servers and security cover inheritance and explicit empty overrides. Tests cover request/response media types, multipart, response headers/statuses, examples, nullable/required/readOnly/writeOnly fields, arrays, maps and composition.
+- P2.3 complete: document-local shared, recursive, multi-level, inline, escaped and root pointers are navigable. Reusable parameters/request bodies/responses/headers/examples and bare Path Item aliases are covered. Dangling, external, cross-document fallback, cyclic aliases, invalid pointer escapes, dynamic/rebased references and ambiguous Path Item siblings fail explicitly.
+- P2.4 complete: trusted `SKILL.md`, group-aware catalog, per-document context/operation/schema/reference files, tag navigation and source metadata are generated with stable links and filenames. Source metadata includes generator format version, service/Skill/document identity, source digests, OpenAPI/API versions and counts.
+- P2.5 complete: tests cover safe lowercase identities, case-safe hashed filenames, stable paths, untrusted source-text isolation, malformed containers, nesting/input/document/reference/output-file limits, complete link resolution, deterministic immutable results and two-document snapshot output.
 
-Exit evidence: a complete service Skill from two documents, navigable references, all expected operations represented, correct conflicting-name ownership, and meaningful core tests. Core verification uses fixed local files with no LLM, business API, or external-reference calls.
+Exit evidence: root tests pass 39 cases. The account/business fixtures produce one 19-file Skill with 4 operations, 7 schemas, 3 tag indexes, 2 document contexts, catalog, source metadata and trusted entrypoint. The skill-creator validator reports `Skill is valid!`; an independent read-only frontend scenario navigates `SKILL.md → catalog → POST /files → UploadReceipt` and identifies the exact multipart field and response semantics without consulting source fixtures. Core verification uses fixed local files with no LLM, business API, or external-reference calls.
 
 ### P3 — Make Service Updates Complete And Failure-Safe
 
@@ -166,7 +168,7 @@ Distribution visibility, storage, gateway deployment, and a pinned Spring Boot t
 
 ## Known Gaps
 
-P0 and the first P2 snapshot slice are complete. Root tests pass 26 cases. Broader P2 semantics/reference/limit coverage, P3 publishing and P1/P4 production integration remain open.
+P0 and P2 are complete. P3 publication and P1/P4 production integration remain open. The core still intentionally does not perform full OpenAPI schema validation, external reference access, filesystem publication or freshness checks.
 
 ## Last Updated
 
@@ -186,13 +188,22 @@ P0 and the first P2 snapshot slice are complete. Root tests pass 26 cases. Broad
 - New core POM and corrected parent description; no legacy IR. P2 is authorized next, independently of compilation integration.
 
 
-## 2026-09-09 - P2 First Snapshot Skill Delivered
+## 2026-09-09 - P2 First Snapshot Skill Delivered (Intermediate Checkpoint)
 
 - Test-first evidence: 5 new generator tests failed (2 assertions, 3 placeholder errors), with all 19 P0 tests still passing. Implementation then passed all 24. Two additional cases brought the total to 26; the missing catalog entry for unreferenced schemas failed before the fix. Final root `mvn -B test`: 26 passed, 0 failures/errors.
 - Uses existing account/business bytes without starting the service. One Skill contains 4 operation files, 7 schema files, 2 document contexts, a catalog, source metadata and trusted SKILL.md (16 files).
 - Tests compare complete operation/schema JSON, assert overrides, document/service identity, recursive/shared/multi-level and escaped local pointers, dangling/external reference failures, unsafe identities, case-safe filenames, input/schema-file bounds and link targets. Source text is excluded from SKILL.md; JSON code-fence escaping preserves data.
 - Review artifact: `smartdoc-agent-core/target/smartdoc/springdoc-multi-package-api/`; root `mvn test` recreates it through a fixture test. Generated target files are not committed or installed.
-- P2 remains in progress: path-item references, dynamic/rebased schema references are explicitly rejected; fuller reusable-example/link semantics, malformed structure coverage and all processing limits need further tests before whole-stage acceptance. These unsupported cases are absent from the two requested snapshots.
+- At this checkpoint P2 remained in progress. The completion record below supersedes the listed content/reference/limit gaps.
 - No P3 or P4 started. Source freshness, safe publication, ordinary/repeated compile integration and actual consuming-agent acceptance remain unverified.
-- P0 commit e623fa9 was created; its first GitHub push failed on a port 443 connection timeout. Normal push is retried with this milestone.
-- Skill frontmatter and entrypoint were manually inspected. The skill-creator quick_validate.py could not run because bundled Python lacks PyYAML; a temporary dependency-install attempt did not complete and was stopped. This does not replace the passing Java content/link tests.
+- P0 commit e623fa9 and the first P2 slice commit 4d14e52 were pushed to `origin/main`.
+- Skill frontmatter and entrypoint were manually inspected. The initial skill-creator validation dependency attempt did not complete; final P2 validation below succeeded with a temporary target-local PyYAML installation.
+
+## 2026-09-09 - P2 Complete
+
+- Red-to-green continuation: 4 reference/navigation tests initially produced 2 failures and 2 errors; after Path Item, tag and source-data handling they passed. Two root/example-reference tests then errored before local-root and Example Object handling were added. The final contract suite exposed a null document identity as an unclassified `NullPointerException`; validation now reports `IDENTITY`.
+- Final `mvn -B clean test`: 39 tests, 0 failures/errors. The output-file bound test builds two 5000-Schema documents and confirms the complete result is refused; other tests cover document/input/reference and nesting limits.
+- The account/business snapshots produce 19 generated files: 4 operations, 7 schemas, 3 tag indexes, 2 contexts, `catalog.md`, `source.json` and trusted `SKILL.md`.
+- `quick_validate.py` reports `Skill is valid!` using a temporary dependency under ignored Maven target output.
+- Independent read-only forward use found the file-upload API, multipart `file` field, 200 response and optional int64 `size` through generated navigation alone. It correctly treated authentication as unknown for that operation and reported missing non-200 responses and production server facts rather than inventing them. This validates P2 content usability only; actual installation/discovery remains P5.
+- P3 is next. Source freshness, safe publication, ordinary/repeated compile integration, independent service build isolation and actual consuming-project discovery remain unverified.

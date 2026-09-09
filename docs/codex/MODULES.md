@@ -5,7 +5,7 @@
 | Module | Responsibility | Status |
 | --- | --- | --- |
 | Parent project | Java 17/Maven dependency management and module aggregation | Buildable; root tests execute |
-| `smartdoc-agent-core` | OpenAPI-to-Skill content conversion and necessary checks | P0 complete; P2 snapshot generator, 26 total tests |
+| `smartdoc-agent-core` | OpenAPI-to-Skill content conversion and necessary checks | P0 and P2 complete; 39 total tests |
 | `smartdoc-agent-maven-plugin` | Compilation trigger and safe, non-blocking update coordination | Proposed, not implemented |
 | AI project docs | Persistent scope, context, and implementation guidance | Exists; refreshed for v3.4 |
 | `testbeds/springdoc-multi-package` | Standalone annotated sample and validated two-document fixture export | Implemented; five tests pass, snapshots frozen |
@@ -18,9 +18,9 @@ The parent describes OpenAPI-to-Skill conversion. Core uses existing managed Jac
 
 ## Core
 
-Implemented first P2 slice: `SkillGenerator.generate(serviceId, skillName, documents)` returns an immutable complete content map and performs no filesystem or network actions. `DocumentReferences` renders contract JSON in Markdown with local graph links. Operation files preserve original operations plus effective parameter/server/security context; schema files preserve exact JSON semantics. Catalogs list all operations and schemas by document. Names are safe lowercase IDs; operation paths and schema pointers use SHA-256 filenames to avoid unsafe characters and case collisions. Metadata records service/document identity and each input digest.
+P2 is complete: `SkillGenerator.generate(serviceId, skillName, documents)` returns an immutable complete content map and performs no filesystem or network actions. `DocumentReferences` renders contract JSON in Markdown with document-local graph links. Operation files preserve original operations plus effective path/operation parameters, servers and security; schema and other referenced component files preserve exact JSON semantics. Catalogs list all operations, tags and schemas by document. Names are safe lowercase IDs; operation paths, schema pointers and tags use SHA-256 filenames to avoid unsafe characters and case collisions. Metadata records the generator format version, service/Skill identity, full document set, each input digest, OpenAPI/API versions, and operation/schema counts.
 
-Bounds: 32 documents, 8 MiB per document, 32 MiB aggregate input, 128 graph nesting levels, 5000 schema/reference targets per document, 10000 output files and 64 MiB output. The final output cap is checked before returning the content map, not a process memory guarantee. Dynamic/rebased schema references and path-item references are explicitly unsupported; only local JSON Pointer fragments are accepted. Example/default/enum/const payloads remain data, not reference traversal targets. Broader OpenAPI semantics and malformed-structure coverage remain P2 follow-up; this is not a full specification validator.
+Bounds: 32 documents, 8 MiB per document, 32 MiB aggregate input, 128 graph nesting levels, 5000 schema/reference targets per document, 10000 output files and 64 MiB output. The final output cap is checked before returning the content map, not a process memory guarantee. Local JSON Pointer fragments, including root and escaped pointers, and bare multi-level Path Item aliases are supported. External, dangling, anchored, dynamic and rebased references fail explicitly; ambiguous Path Item `$ref` siblings are rejected. Example/default/enum/const and extension payloads remain data, not reference traversal targets. Known OpenAPI container shapes are checked, but core remains a converter rather than a full OpenAPI specification validator.
 
 The test exports only sanitized snapshots under target. No filesystem update/rollback, source freshness, compiler hook or agent discovery is implied.
 

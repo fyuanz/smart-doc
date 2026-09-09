@@ -22,11 +22,11 @@ The current source of truth is `docs/smartdoc-agent-design.md`, version 3.4.0. M
 ## Current Status
 
 - Product scope v3.4 is ready as an implementation planning baseline; actual producer/lifecycle integration remains to be verified.
-- The P0-P5 work plan is active. At the user's request, the standalone P1.3 testbed was implemented first; P0 is complete; P2 now generates one service Skill from the two frozen snapshots.
+- The P0-P5 work plan is active. P0 and P2 are complete; P3 safe service-directory updates are next.
 - The Java 17 Maven parent exists and references `smartdoc-agent-core`.
 - A new core POM and OpenApiInput validator pass 19 tests. Deleted legacy IR remains removed.
-- Root Maven project loading and test discovery work; 26 tests pass (19 input, 7 generation).
-- Core snapshot generation is implemented as a first P2 slice; production publication and compilation integration remain unimplemented. A thin Maven plugin is proposed, not implemented.
+- Root Maven project loading and test discovery work; 39 tests pass (19 input and 20 generation/contract/reference/limit tests).
+- Core content generation is complete for the retained P2 boundary. Production publication and compilation integration remain unimplemented. A thin Maven plugin is proposed, not implemented.
 - The target application's current-document production workflow, actual compile entry points, and output destination are unknown.
 - The first realistic fixture exists at `testbeds/springdoc-multi-package/`: Java 17, Spring Boot 3.5.9, springdoc 2.8.15, four packages and two explicit groups. Five tests pass; validated OpenAPI 3.1.0 snapshots and metadata are in `fixtures/`. This alone does not prove independent microservices or ordinary-compile integration.
 

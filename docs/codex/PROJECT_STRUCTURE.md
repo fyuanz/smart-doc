@@ -23,7 +23,7 @@
 |       `-- src/              # sample application and contract/runtime tests
 |-- smartdoc-agent-core/
 |   |-- pom.xml
-|   `-- src/                # input validation, Skill generation, local refs and tests
+|   `-- src/                # input validation, Skill generation, local refs, tags and focused tests
 `-- pom.xml
 ```
 
@@ -36,9 +36,9 @@
 | `pom.xml` | Java 17 Maven parent; aggregates the new core module |
 | `docs/codex/DECISIONS.md` | Historical and current scope decisions |
 
-P0 rebuilt smartdoc-agent-core/pom.xml and src/main/java/com/smartdoc/agent/core/OpenApiInput.java, with tests under src/test/java and a minimal JSON fixture under src/test/resources. Legacy IR remains deleted.
+P0 rebuilt the core POM and exact-version input boundary. P2 adds `SkillGenerator` and `DocumentReferences`, with separate fixture, contract, reference and limit tests under `src/test/java`. Legacy IR remains deleted.
 
-## Proposed Implementation Locations
+## Implementation Locations
 
 Core paths now exist; the Maven plugin remains proposed:
 

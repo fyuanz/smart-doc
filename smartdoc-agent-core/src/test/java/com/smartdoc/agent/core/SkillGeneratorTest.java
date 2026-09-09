@@ -47,7 +47,10 @@ class SkillGeneratorTest {
                         .map(Map.Entry::getValue).map(this::contract).anyMatch(schema.getValue()::equals));
             }
         }
-        assertEquals(2, mapper.readTree(files.get("references/source.json")).path("documents").size());
+        JsonNode source = mapper.readTree(files.get("references/source.json"));
+        assertEquals("smartdoc-agent-core/1", source.path("generatorVersion").asText());
+        assertEquals(2, source.path("documents").size());
+        assertTrue(source.path("documents").findValuesAsText("apiVersion").stream().allMatch("1.0.0"::equals));
         checkLinks(files);
         assertEquals(files, generator.generate("springdoc-multi-package", "springdoc-multi-package-api", docs));
         // Reviewable fixture output only; this is not production publication or a compile hook.
