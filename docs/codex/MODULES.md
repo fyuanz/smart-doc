@@ -5,8 +5,8 @@
 | Module | Responsibility | Status |
 | --- | --- | --- |
 | Parent project | Java 17/Maven dependency management and module aggregation | Buildable; root tests execute |
-| `smartdoc-agent-core` | OpenAPI-to-Skill content conversion and necessary checks | P0 and P2 complete; 39 total tests |
-| `smartdoc-agent-maven-plugin` | Compilation trigger and safe, non-blocking update coordination | Proposed, not implemented |
+| `smartdoc-agent-core` | OpenAPI-to-Skill conversion, complete-tree validation, and safe service publication | P0, P2, and P3 complete; 54 total tests |
+| `smartdoc-agent-maven-plugin` | Compilation trigger, current-document coordination, and non-blocking result reporting | Proposed, not implemented |
 | AI project docs | Persistent scope, context, and implementation guidance | Exists; refreshed for v3.4 |
 | `testbeds/springdoc-multi-package` | Standalone annotated sample and validated two-document fixture export | Implemented; five tests pass, snapshots frozen |
 
@@ -22,7 +22,9 @@ P2 is complete: `SkillGenerator.generate(serviceId, skillName, documents)` retur
 
 Bounds: 32 documents, 8 MiB per document, 32 MiB aggregate input, 128 graph nesting levels, 5000 schema/reference targets per document, 10000 output files and 64 MiB output. The final output cap is checked before returning the content map, not a process memory guarantee. Local JSON Pointer fragments, including root and escaped pointers, and bare multi-level Path Item aliases are supported. External, dangling, anchored, dynamic and rebased references fail explicitly; ambiguous Path Item `$ref` siblings are rejected. Example/default/enum/const and extension payloads remain data, not reference traversal targets. Known OpenAPI container shapes are checked, but core remains a converter rather than a full OpenAPI specification validator.
 
-The test exports only sanitized snapshots under target. No filesystem update/rollback, source freshness, compiler hook or agent discovery is implied.
+P3 adds `ServiceSkillUpdater.update(...)`: it obtains a per-output lock, runs generation with a timeout, checks the complete in-memory result, writes and rechecks a private staging tree, replaces only a matching generator-owned Skill, and restores the previous complete tree when publication fails. A failed restore leaves the complete backup for recovery. It never clears the shared output parent or adopts an existing manual/foreign directory. Last-attempt JSON status stays outside the Skill, and a status-write failure is returned without undoing a valid publication. Timed-out generation cannot publish later because only the updater thread can consume and publish its returned map.
+
+Publication validation enforces safe normalized relative paths, case-insensitive collision and file/directory conflict checks, the 10,000-file/64 MiB bounds, matching trusted entrypoint/source ownership, strict source JSON, reachable local Markdown links, and no symlinks or special filesystem entries. The test export still only writes sanitized snapshots under target. P3 tests use temporary directories; no source freshness, compiler hook or agent discovery is implied.
 
 Target responsibilities:
 
@@ -49,16 +51,14 @@ Target responsibilities:
 - Coordinate the actual current-document producer and the converter in a verified order.
 - Detect producer failure even when an old document remains on disk; never report old-input fallback as successful synchronization.
 - Isolate Skill configuration/preparation/conversion/write failures, enforce bounded execution, and emit actionable warnings without failing business compilation.
-- Generate into staging and replace only a complete valid generator-owned Skill; retain/recover the previous valid result on failure.
-- Handle output conflicts without interleaved writes and prevent timed-out work from later publishing.
-- Record last-attempt status outside the Skill; preserve the old source identity after a failed attempt.
+- Call the P3 updater for staged replacement, recovery, output locking, bounded generation, and external status; report its result without changing the business build outcome.
 - Coordinate all required documents for one service before replacement. Any required document failure preserves the whole previous service Skill; other services update independently.
 - Scope output, staging, mutual exclusion, and status by service. Reject colliding service outputs without overwriting or clearing their shared parent.
 - Establish a service generation owner and verify full/partial/parallel build entry points. Partial builds with incomplete required input must diagnose the missed update; do not assume parent aggregator execution proves child readiness.
 
 Core errors remain observable; only the integration layer decides the non-blocking build behavior. Existing business build failures must remain failures. Host process failure or inability to load the plugin is not an exception a running generator can intercept.
 
-The current-document provider, concrete lifecycle binding, IDE coverage, output location, and timeout mechanism are not implemented or verified. Do not make a default runtime-service dependency from these unknowns.
+The current-document provider, concrete lifecycle binding, IDE coverage, final production output location, and plugin-to-core wiring are not implemented or verified. Do not make a default runtime-service dependency from these unknowns.
 
 ## Deferred Modules And Contracts
 

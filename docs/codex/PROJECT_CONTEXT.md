@@ -22,11 +22,11 @@ The current source of truth is `docs/smartdoc-agent-design.md`, version 3.4.0. M
 ## Current Status
 
 - Product scope v3.4 is ready as an implementation planning baseline; actual producer/lifecycle integration remains to be verified.
-- The P0-P5 work plan is active. P0 and P2 are complete; P3 safe service-directory updates are next.
+- The P0-P5 work plan is active. P0, P2, and P3 are complete; P4 production compilation integration needs target evidence.
 - The Java 17 Maven parent exists and references `smartdoc-agent-core`.
 - A new core POM and OpenApiInput validator pass 19 tests. Deleted legacy IR remains removed.
-- Root Maven project loading and test discovery work; 39 tests pass (19 input and 20 generation/contract/reference/limit tests).
-- Core content generation is complete for the retained P2 boundary. Production publication and compilation integration remain unimplemented. A thin Maven plugin is proposed, not implemented.
+- Root Maven project loading and test discovery work; 54 tests pass (19 input, 20 content-generation, and 15 safe-publication tests).
+- Core content generation and failure-safe service-directory publication are complete for the P2/P3 boundary. Production compilation integration remains unimplemented. A thin Maven plugin is proposed, not implemented.
 - The target application's current-document production workflow, actual compile entry points, and output destination are unknown.
 - The first realistic fixture exists at `testbeds/springdoc-multi-package/`: Java 17, Spring Boot 3.5.9, springdoc 2.8.15, four packages and two explicit groups. Five tests pass; validated OpenAPI 3.1.0 snapshots and metadata are in `fixtures/`. This alone does not prove independent microservices or ordinary-compile integration.
 
@@ -49,7 +49,7 @@ mvn compile
 mvn test
 ```
 
-The fixture-generation test writes a reviewable Skill to `smartdoc-agent-core/target/smartdoc/springdoc-multi-package-api/`. This test export is not a compile hook or failure-safe publisher. Core callers use `new SkillGenerator().generate(serviceId, skillName, Map<String, byte[]>)` to obtain a complete immutable map of relative paths to UTF-8 content. All map entries are required; callers own the configured input set.
+The fixture-generation test writes a reviewable Skill to `smartdoc-agent-core/target/smartdoc/springdoc-multi-package-api/`. This test export is not a compile hook. Core callers use `new SkillGenerator().generate(serviceId, skillName, Map<String, byte[]>)` to obtain a complete immutable map of relative paths to UTF-8 content. All map entries are required; callers own the configured input set. `ServiceSkillUpdater.update(...)` runs bounded generation, validates the in-memory and staged trees, locks one output, and publishes or restores one complete generator-owned Skill. It returns an observable result and writes last-attempt status under the output parent's `.smartdoc/status/` directory.
 
 The target integration must cover ordinary and repeated compilation without requiring `clean`, and packaging that traverses compilation. Exact plugin binding/order must be verified with integration tests. IDE-independent compilation is not automatically covered by Maven integration.
 

@@ -23,7 +23,7 @@
 |       `-- src/              # sample application and contract/runtime tests
 |-- smartdoc-agent-core/
 |   |-- pom.xml
-|   `-- src/                # input validation, Skill generation, local refs, tags and focused tests
+|   `-- src/                # input validation, Skill generation, safe publication and focused tests
 `-- pom.xml
 ```
 
@@ -36,16 +36,16 @@
 | `pom.xml` | Java 17 Maven parent; aggregates the new core module |
 | `docs/codex/DECISIONS.md` | Historical and current scope decisions |
 
-P0 rebuilt the core POM and exact-version input boundary. P2 adds `SkillGenerator` and `DocumentReferences`, with separate fixture, contract, reference and limit tests under `src/test/java`. Legacy IR remains deleted.
+P0 rebuilt the core POM and exact-version input boundary. P2 adds `SkillGenerator` and `DocumentReferences`; P3 adds `GeneratedSkillValidator` and `ServiceSkillUpdater`, with separate fixture, contract, reference, limit, publication, failure-injection and concurrency tests under `src/test/java`. Legacy IR remains deleted.
 
 ## Implementation Locations
 
 Core paths now exist; the Maven plugin remains proposed:
 
-- `smartdoc-agent-core/src/main/java/com/smartdoc/agent/core/`: OpenApiInput.java (version/JSON boundary), SkillGenerator.java (service assembly), DocumentReferences.java (local graph, contract rendering and links).
+- `smartdoc-agent-core/src/main/java/com/smartdoc/agent/core/`: OpenApiInput.java (version/JSON boundary), SkillGenerator.java (service assembly), DocumentReferences.java (local graph, contract rendering and links), GeneratedSkillValidator.java (complete-tree checks), and ServiceSkillUpdater.java (bounded generation, locking, staged replacement, recovery, and external status).
 - Trusted Skill template currently resides in SkillGenerator.java; no resources directory is needed.
 - `smartdoc-agent-core/src/test/`: sanitized OpenAPI fixture, small boundary inputs, and meaningful semantic tests.
-- `smartdoc-agent-maven-plugin/`: proposed thin compile integration, document preparation coordination, failure isolation, bounded execution, staging/replacement, and status.
+- `smartdoc-agent-maven-plugin/`: proposed thin compile integration and document preparation coordination that will call the P2/P3 core boundary and translate update results to non-blocking build warnings.
 - Plugin integration tests: full, single-service, partial-module, repeated, and parallel compilation, document readiness, and per-service non-blocking generation failures; choose test paths with the first implementation.
 
 Do not add CLI, server, package repository, generic ingestion, or distribution modules. The implemented standalone fixture at `testbeds/springdoc-multi-package/` has `user`, `order`, `file`, and `common` packages and explicit `account`/`business` groups. It is outside the root reactor and must not become a production dependency. Future core tests consume its frozen sanitized snapshots rather than start it on every run.
@@ -53,9 +53,9 @@ Do not add CLI, server, package repository, generic ingestion, or distribution m
 ## Generated Or Ignored Directories
 
 - Maven `**/target/` output is not source.
-- `smartdoc-agent-core/target/smartdoc/springdoc-multi-package-api/` is the verified test-generated Skill. Production output/publishing remains unimplemented.
-- Staging and update status should be outside the final Skill directory and inside a controlled output parent; exact names are implementation details.
-- Each service owns a unique Skill output, staging, lock, and status location. Proposed references use `references/documents/<documentId>/operations/`, `schemas/`, and optional `tags/`; single-document services also use a document namespace.
+- `smartdoc-agent-core/target/smartdoc/springdoc-multi-package-api/` is the verified test-generated Skill. The P3 publisher is verified in temporary directories; no production build invokes it yet.
+- For an output parent, the final Skill is `<skillName>/`; updater state is outside it under `.smartdoc/locks/<skillName>.lock`, `.smartdoc/staging/`, `.smartdoc/backups/`, and `.smartdoc/status/<serviceId>.json`.
+- Each service owns a unique Skill output, staging attempt, lock, and status location. Generated references use `references/documents/<documentId>/operations/`, `schemas/`, and optional `tags/`; single-document services also use a document namespace.
 - Preserve safe local ignore rules for IDE files, secrets, logs, and temporary files.
 - Generated restricted API documentation must not be committed as a substitute for sanitized fixtures.
 

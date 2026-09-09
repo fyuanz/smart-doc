@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-Scope review completed: one or more API documents per service → one frontend Skill per service, updated on every configured compilation, with generation failures isolated from the business build and other services. Product design v3.4.0 is the implementation baseline. P0 and P2 are complete; P1.3's standalone producer is available; P3 safe publication is next while production compilation integration remains open.
+Scope review completed: one or more API documents per service → one frontend Skill per service, updated on every configured compilation, with generation failures isolated from the business build and other services. Product design v3.4.0 is the implementation baseline. P0, P2, and P3 are complete; P1.3's standalone producer is available; production compilation integration needs target evidence.
 
 ## Completed Tasks
 
@@ -24,10 +24,11 @@ Scope review completed: one or more API documents per service → one frontend S
 | Establish milestone delivery workflow | AGENTS.md records verification, documentation updates, commit and normal push after each completed part of requested work |
 | P0: Establish the core foundation | Root Maven tests execute; exact 3.1.0 JSON input boundary and explicit diagnostics pass |
 | P2: Generate a usable per-service Skill | Two grouped snapshots generate one navigable Skill; contract, reference, isolation, navigation and limit tests pass |
+| P3: Publish complete service updates safely | Staging, validation, ownership, timeout, locking, recovery, status, stale-removal and service-isolation tests pass |
 
 ## Active Tasks
 
-P0 and P2 are complete. P1.3 remains the local fixture producer; P1's production integration gates remain open because the target application's document-production and compile entry points are not present. Continue with P3 using fixed core inputs without treating that as production freshness evidence.
+P0, P2, and P3 are complete. P1.3 remains the local fixture producer; P1's production integration gates remain open because the target application's document-production and compile entry points are not present. P4 cannot be closed from fixed core inputs because they do not prove production freshness or real compile behavior.
 
 P1.3 evidence:
 
@@ -46,11 +47,11 @@ Status vocabulary: **Ready** means it can be started; **In progress** means a ve
 | P0 | Buildable core foundation and first tested input rule | Existing repository | Complete |
 | P1 | Verified current-document and compilation integration contract | Standalone testbed independent of P0; target configuration for final verification | P1.3 complete; remaining integration needs target evidence |
 | P2 | Usable per-service Skill from one or more documents | P0; independent of the target producer | Complete |
-| P3 | Complete service updates with observable failure and preserved output | P2 | Ready |
-| P4 | Real per-compilation integration, including multiple services/modules | P1 verified, P2, P3 | Pending |
+| P3 | Complete service updates with observable failure and preserved output | P2 | Complete |
+| P4 | Real per-compilation integration, including multiple services/modules | P1 verified, P2, P3 | Needs target evidence |
 | P5 | End-to-end/frontend acceptance and minimal usage instructions | P4 | Pending |
 
-P0 and P2 are complete. Next implement P3 complete service-directory updates with explicit fixtures while leaving P1 unverified. Do not call fixture-only generation or publication a working production compile integration.
+P0, P2, and P3 are complete. Next establish P1's target service/module/document producer and exact compile entry points, then implement P4 against that evidence. Do not call fixture-only generation or publication a working production compile integration.
 
 ### P0 — Establish The Build And First Red-To-Green Slice
 
@@ -95,7 +96,7 @@ Producer reference: [springdoc grouping and properties](https://springdoc.org/v2
 
 Exit evidence: root tests pass 39 cases. The account/business fixtures produce one 19-file Skill with 4 operations, 7 schemas, 3 tag indexes, 2 document contexts, catalog, source metadata and trusted entrypoint. The skill-creator validator reports `Skill is valid!`; an independent read-only frontend scenario navigates `SKILL.md → catalog → POST /files → UploadReceipt` and identifies the exact multipart field and response semantics without consulting source fixtures. Core verification uses fixed local files with no LLM, business API, or external-reference calls.
 
-### P3 — Make Service Updates Complete And Failure-Safe
+### P3 — Make Service Updates Complete And Failure-Safe (Complete)
 
 - P3.1: Test first, then implement complete staging, validation, and replacement of only the generator-owned service directory. Do not clear the shared parent.
 - P3.2: Verify modified/deleted interfaces and explicitly removed groups leave no stale references after success. A missing required input is a failure, not an implicit removal.
@@ -103,7 +104,7 @@ Exit evidence: root tests pass 39 cases. The account/business fixtures produce o
 - P3.4: Exercise denied writes, replacement failure, timeout, same-service write contention, and conflicting service outputs. Timed-out work cannot publish later; replacement failure must preserve/recover the old result.
 - P3.5: Verify two independent services update concurrently and one service's failure cannot mutate or prevent the other's result. Keep status and temporary files isolated by service.
 
-Exit evidence: targeted failure-injection tests and comparisons proving the old service tree remains complete/unchanged on failure, deleted files disappear on success, and unrelated outputs remain untouched. These tests do not yet prove Maven's exit behavior; P4 does.
+Exit evidence complete: targeted failure-injection tests and whole-tree comparisons prove the old service tree remains complete/unchanged on ordinary failure, deleted files/groups disappear on success, catastrophic restore failure retains a recovery backup, and unrelated service/manual outputs remain untouched. These tests do not yet prove Maven's exit behavior; P4 does.
 
 ### P4 — Integrate The Complete Update Into Compilation
 
@@ -168,7 +169,7 @@ Distribution visibility, storage, gateway deployment, and a pinned Spring Boot t
 
 ## Known Gaps
 
-P0 and P2 are complete. P3 publication and P1/P4 production integration remain open. The core still intentionally does not perform full OpenAPI schema validation, external reference access, filesystem publication or freshness checks.
+P0, P2, and P3 are complete. P1/P4 production integration remains open. The core still intentionally does not perform full OpenAPI schema validation, external reference access, source freshness checks, or build-lifecycle coordination.
 
 ## Last Updated
 
@@ -206,4 +207,12 @@ P0 and P2 are complete. P3 publication and P1/P4 production integration remain o
 - The account/business snapshots produce 19 generated files: 4 operations, 7 schemas, 3 tag indexes, 2 contexts, `catalog.md`, `source.json` and trusted `SKILL.md`.
 - `quick_validate.py` reports `Skill is valid!` using a temporary dependency under ignored Maven target output.
 - Independent read-only forward use found the file-upload API, multipart `file` field, 200 response and optional int64 `size` through generated navigation alone. It correctly treated authentication as unknown for that operation and reported missing non-200 responses and production server facts rather than inventing them. This validates P2 content usability only; actual installation/discovery remains P5.
-- P3 is next. Source freshness, safe publication, ordinary/repeated compile integration, independent service build isolation and actual consuming-project discovery remain unverified.
+- P3 was the next stage at this checkpoint and is completed below. Source freshness, ordinary/repeated compile integration, independent service build isolation and actual consuming-project discovery remain unverified.
+
+## 2026-09-09 - P3 Complete
+
+- Behavioral red: the first updater tests ran with all 39 earlier tests green and produced 10 expected updater failures/errors. A later recovery-injection test exposed deletion of the only complete backup when both publication and restoration failed; it failed before cleanup was corrected.
+- Green: final root `mvn -B clean test` runs 54 tests with 0 failures/errors. Fifteen P3 tests cover first and replacement success, complete group/operation stale-file removal, missing required input, invalid generated trees, manual/foreign output collision, generation/write/status/publish/recovery failures, timeout with a task that ignores interruption, same-output locking, conflicting service ownership, and independent concurrent service success/failure.
+- `ServiceSkillUpdater` publishes only after in-memory and staged validation. It locks by final Skill output, moves a valid prior tree to a unique backup, restores it on publication failure, and retains the complete backup if restoration itself cannot finish. It never clears the shared parent.
+- Last-attempt status is atomically replaced under `.smartdoc/status/<serviceId>.json`; locks, staging attempts, and backups remain outside the Skill. Status failure is observable and does not roll back a successfully validated Skill.
+- P3 proves the reusable filesystem update boundary only. It does not prove document freshness, Maven lifecycle placement, plugin warning/exit behavior, multi-module generation ownership, final output placement, or consuming-project discovery; those remain P1/P4/P5 gates.
