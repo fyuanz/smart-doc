@@ -30,10 +30,10 @@
 | --- | --- |
 | `AGENTS.md` | First-read, test-first development, and documentation rules |
 | `docs/smartdoc-agent-design.md` | v3.4 scope, service/document boundaries, compile updates, and acceptance |
-| `pom.xml` | Java 17 Maven parent; references the missing core POM |
+| `pom.xml` | Java 17 Maven parent; aggregates the new core module |
 | `docs/codex/DECISIONS.md` | Historical and current scope decisions |
 
-The legacy `smartdoc-agent-core/` files were removed. An empty local directory is not retained by Git; the root POM still references the missing module until P0 rebuilds it.
+P0 rebuilt smartdoc-agent-core/pom.xml and src/main/java/com/smartdoc/agent/core/OpenApiInput.java, with tests under src/test/java and a minimal JSON fixture under src/test/resources. Legacy IR remains deleted.
 
 ## Proposed Implementation Locations
 
@@ -64,3 +64,4 @@ Do not add CLI, server, package repository, generic ingestion, or distribution m
 - Do not claim Maven integration covers independent IDE compilation without verification.
 - Stable links and filenames matter; a ZIP identity/verification platform is outside scope.
 - Never replace a shared parent containing multiple service outputs. Do not infer service boundaries from Java packages or Maven directory names.
+

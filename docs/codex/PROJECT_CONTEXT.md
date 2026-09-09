@@ -22,17 +22,17 @@ The current source of truth is `docs/smartdoc-agent-design.md`, version 3.4.0. M
 ## Current Status
 
 - Product scope v3.4 is ready as an implementation planning baseline; actual producer/lifecycle integration remains to be verified.
-- The P0-P5 work plan is active. At the user's request, the standalone P1.3 testbed was implemented first; P0 remains ready and core work has not started.
+- The P0-P5 work plan is active. At the user's request, the standalone P1.3 testbed was implemented first; P0 is complete; P2 fixture conversion is next.
 - The Java 17 Maven parent exists and references `smartdoc-agent-core`.
-- The legacy core POM, six IR records, and `ir-schema.json` have been removed. No replacement core implementation or tests exist.
-- The missing core POM prevents Maven project loading; the earlier baseline passed with no tests before these deletions.
+- A new core POM and OpenApiInput validator pass 19 tests. Deleted legacy IR remains removed.
+- Root Maven project loading and test discovery work.
 - Core generation and compilation integration remain unimplemented. A thin Maven plugin is proposed, not implemented.
 - The target application's current-document production workflow, actual compile entry points, and output destination are unknown.
 - The first realistic fixture exists at `testbeds/springdoc-multi-package/`: Java 17, Spring Boot 3.5.9, springdoc 2.8.15, four packages and two explicit groups. Five tests pass; validated OpenAPI 3.1.0 snapshots and metadata are in `fixtures/`. This alone does not prove independent microservices or ordinary-compile integration.
 
 ## Commands
 
-Standalone testbed (independent of the broken root reactor):
+Standalone testbed (independent of the root reactor):
 
 ```text
 mvn -f testbeds/springdoc-multi-package/pom.xml test
@@ -42,7 +42,7 @@ powershell -NoProfile -File testbeds/springdoc-multi-package/refresh-fixtures.ps
 
 Tests start the testbed on a random loopback port and close it afterward. Manual startup uses `127.0.0.1:18080`; see the testbed README. Only explicit refresh replaces frozen fixture files.
 
-Existing Maven entry points, currently blocked by the missing core POM:
+Root Maven entry points (test verified):
 
 ```text
 mvn compile
@@ -77,3 +77,4 @@ The former `smartdoc skill build`, `smartdoc skill verify`, and `smartdoc serve`
 The testbed also provides Swagger UI at `http://127.0.0.1:18080/swagger-ui.html`, with account/business group selection for manual API inspection.
 
 Milestone delivery follows AGENTS.md: verify each completed part of requested work, update documentation, commit, and push to the configured GitHub remote. This does not automatically begin the next product stage.
+

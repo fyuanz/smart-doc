@@ -10,7 +10,7 @@
     <packaging>pom</packaging>
 
     <name>smart-doc-agent</name>
-    <description>智能软件字节码说明书生成引擎 · 父工程</description>
+    <description>OpenAPI 文档转 Skill · 父工程</description>
 
     <modules>
         <module>smartdoc-agent-core</module>

@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-Scope review completed: one or more API documents per service → one frontend Skill per service, updated on every configured compilation, with generation failures isolated from the business build and other services. Product design v3.4.0 is the implementation baseline. P1.3's standalone multi-package testbed is implemented; core and compilation integration remain unimplemented.
+Scope review completed: one or more API documents per service → one frontend Skill per service, updated on every configured compilation, with generation failures isolated from the business build and other services. Product design v3.4.0 is the implementation baseline. P1.3's standalone multi-package testbed is implemented; P0 core foundation is complete; conversion and compilation integration remain unimplemented.
 
 ## Completed Tasks
 
@@ -25,7 +25,7 @@ Scope review completed: one or more API documents per service → one frontend S
 
 ## Active Tasks
 
-On 2026-09-09 the user requested the minimal Spring Boot test service first. P1.3 is complete as a local fixture slice; its independent POM bypasses the missing root core module without restoring deleted files. P0 remains ready; P1's production integration gates remain open.
+On 2026-09-09 the user requested the minimal Spring Boot test service first. P1.3 is complete as a local fixture slice; its independent POM bypasses the missing root core module without restoring deleted files. P0 is now complete; P1's production integration gates remain open.
 
 P1.3 evidence:
 
@@ -41,9 +41,9 @@ Status vocabulary: **Ready** means it can be started; **Pending** means listed d
 
 | Stage | Deliverable | Dependencies | Status |
 | --- | --- | --- | --- |
-| P0 | Buildable core foundation and first tested input rule | Existing repository | Ready |
+| P0 | Buildable core foundation and first tested input rule | Existing repository | Complete |
 | P1 | Verified current-document and compilation integration contract | Standalone testbed independent of P0; target configuration for final verification | P1.3 complete; remaining integration needs target evidence |
-| P2 | Usable per-service Skill from one or more documents | P0; independent of the target producer | Pending |
+| P2 | Usable per-service Skill from one or more documents | P0; independent of the target producer | Ready |
 | P3 | Complete service updates with observable failure and preserved output | P2 | Pending |
 | P4 | Real per-compilation integration, including multiple services/modules | P1 verified, P2, P3 | Pending |
 | P5 | End-to-end/frontend acceptance and minimal usage instructions | P4 | Pending |
@@ -157,7 +157,7 @@ Exit evidence: P0-P4 checks pass, representative frontend tasks are recorded, an
 
 ## Blockers And Unknowns
 
-- The parent references the deleted core POM, so Maven project loading is currently blocked.
+- Root Maven loading is repaired; no P0 blocker remains.
 - The target application and its current OpenAPI production configuration are absent; the fresh-document integration cannot be verified from this repository.
 - Actual compile entry points and final output destination need to be established before claiming end-to-end coverage.
 - The target service/module/document mapping and partial-build generation owner/readiness strategy are not yet available or verified.
@@ -166,7 +166,7 @@ Distribution visibility, storage, gateway deployment, and a pinned Spring Boot t
 
 ## Known Gaps
 
-No replacement core, generator templates, converter tests, compilation plugin, or end-to-end update tests exist. The parent's description still refers to the superseded bytecode design. The standalone testbed and Swagger UI are complete; core and plugin locations remain proposals. Next: P0 build repair and the first tested input-version rule, then P2 using the frozen account/business fixtures while production P1 gates remain open.
+P0 is complete with a new core POM and 19 input tests. Next: P2 using frozen account/business fixtures; production P1/P4 gates remain open.
 
 ## Last Updated
 
@@ -177,3 +177,11 @@ No replacement core, generator templates, converter tests, compilation plugin, o
 - User-requested Swagger UI is available at `http://127.0.0.1:18080/swagger-ui.html` with account/business selection.
 - Red: the new UI HTTP test failed on 404. Green: explicit fixture refresh ran clean test, 5 tests passed, 0 failures/errors; UI assets/configuration and original OpenAPI contracts are verified.
 - JSON snapshot digests are unchanged; source metadata and README are refreshed. P0 and production integration status are unchanged.
+
+## 2026-09-09 - P0 Complete
+
+- Root mvn -B test red: 19 tests, 18 assertion failures, 1 placeholder error.
+- Green after minimal validation: 19 tests, 0 failures/errors.
+- Exact textual 3.1.0 only; distinct MISSING_VERSION, UNSUPPORTED_VERSION and INVALID_JSON. Invalid roots, duplicate keys and trailing JSON are rejected.
+- New core POM and corrected parent description; no legacy IR. P2 is authorized next, independently of compilation integration.
+

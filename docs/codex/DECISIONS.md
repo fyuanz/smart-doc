@@ -586,3 +586,9 @@ Status: Accepted
 The user requests updated implementation plans and a project commit/push, and authorizes the same delivery sequence for future completed parts. Record the workflow in AGENTS.md: complete the requested slice, verify it, update relevant docs, commit related changes, and perform a normal push to the configured GitHub remote. Report the resulting commit and verification evidence. Missing remote/authentication or a conflict requiring user input is reported without force-pushing. This does not schedule background work or authorize starting unrelated stages.
 
 The current milestone includes the v3.4 scope/docs, previously requested legacy/local-skill removal, the standalone P1.3 producer and Swagger UI. P0 and production integration remain incomplete; the known missing core POM is documented rather than repaired as part of this delivery.
+
+## 2026-09-09 - Establish Minimal Core Input Boundary
+
+Status: Accepted
+
+Use existing managed Jackson/JUnit versions with explicit JUnit 5 discovery. Accept one JSON object with textual openapi exactly 3.1.0; distinguish missing version, unsupported version and invalid JSON. Reject duplicate keys and trailing tokens. This is not full specification validation. No legacy IR is restored. Root tests demonstrate 19-test red-to-green. Proceed to fixture-based P2 separately from unverified production integration.

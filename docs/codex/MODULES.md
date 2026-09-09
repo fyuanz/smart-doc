@@ -4,8 +4,8 @@
 
 | Module | Responsibility | Status |
 | --- | --- | --- |
-| Parent project | Java 17/Maven dependency management and module aggregation | Exists; missing referenced core POM blocks loading |
-| `smartdoc-agent-core` | OpenAPI-to-Skill content conversion and necessary checks | Empty directory; tracked legacy files deleted, no replacement |
+| Parent project | Java 17/Maven dependency management and module aggregation | Buildable; root tests execute |
+| `smartdoc-agent-core` | OpenAPI-to-Skill content conversion and necessary checks | P0 complete: input validator and 19 tests |
 | `smartdoc-agent-maven-plugin` | Compilation trigger and safe, non-blocking update coordination | Proposed, not implemented |
 | AI project docs | Persistent scope, context, and implementation guidance | Exists; refreshed for v3.4 |
 | `testbeds/springdoc-multi-package` | Standalone annotated sample and validated two-document fixture export | Implemented; five tests pass, snapshots frozen |
@@ -14,7 +14,7 @@
 
 Coordinates: `com.smartdoc.agent:smart-doc-agent:1.0.0-SNAPSHOT`.
 
-The parent still describes a bytecode documentation engine. Correct that description with the first implementation. Establish a buildable core POM and failing replacement tests without silently restoring legacy IR. Add a plugin module only with its first tested slice.
+The parent describes OpenAPI-to-Skill conversion. Core uses existing managed Jackson 2.16.1 and JUnit 5.10.2, compiler 3.13.0 and Surefire 3.2.5. No legacy IR is restored. Add a plugin module only with its first tested slice.
 
 ## Core
 
@@ -63,3 +63,4 @@ The minimal Spring Boot testbed is implemented under `testbeds/springdoc-multi-p
 Also defer automatic cross-project install/update, lock/drift management, search, RAG, AI enrichment, TypeScript, alternate knowledge-source types/formats, Agent plugins/MCP, and multi-tenant operations. Multiple OpenAPI documents within one service are required, not an alternate knowledge-source feature. Global cross-service Skill merging/release orchestration is deferred.
 
 Generation-side automatic updates are required; cross-project installation management is a separate deferred capability.
+
