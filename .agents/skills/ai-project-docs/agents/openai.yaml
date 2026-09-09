@@ -1,4 +1,0 @@
-interface:
-  display_name: "AI Project Docs"
-  short_description: "Create or refresh AI-readable project documentation."
-  default_prompt: "Use this skill to create, repair, or refresh AGENTS.md and the docs/codex project documentation pack."

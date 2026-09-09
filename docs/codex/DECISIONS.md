@@ -1,5 +1,13 @@
 # Decisions
 
+Current scope: product design v3.4.0, the compile-update decision, and the 2026-09-09 service/document decision below govern current work. Earlier decisions describe history; ZIP/download, CLI and package identity are deferred. The user-selected standalone Spring Boot fixture is now implemented; it is not a production dependency.
+
+## 2026-09-09 - Remove The Project-Local Documentation Skill
+
+Status: Accepted
+
+The user requested removal of skills installed inside this project. Remove the documentation skill and its bundled templates and metadata. Retain `AGENTS.md` and `docs/codex/` as the direct project guidance and context, with no installed documentation skill dependency. This supersedes the earlier skill installation decision and does not change the product's API-to-Skill generation scope.
+
 ## 2026-09-07 - Initialize Git with a main primary branch
 
 Status: Accepted
@@ -25,7 +33,7 @@ Alternatives considered:
 
 ## 2026-09-07 - Separate mandatory project guidance from the documentation Skill
 
-Status: Accepted
+Status: Superseded by the 2026-09-09 removal of the project-local documentation skill; root guidance remains in effect.
 
 Context:
 
@@ -49,9 +57,9 @@ Alternatives considered:
 - Keep `docs/SKILL.md` and rely on agents to search for it. Rejected because the location is not automatically discoverable as a repository Skill.
 - Force the complete Skill on every task. Rejected because it would add unnecessary documentation gates to routine code changes.
 
-## 2026-09-07 - Preserve the confirmed SmartDoc-Agent architecture
+## 2026-09-07 - Preserve the original SmartDoc-Agent architecture
 
-Status: Accepted
+Status: Superseded
 
 Context:
 
@@ -59,14 +67,522 @@ Context:
 
 Decision:
 
-- Use Java 17 and Maven modules.
-- Use bytecode and optional source inputs normalized into deterministic IR.
-- Use build-time knowledge generation with local runtime retrieval and a probe fallback.
+- Originally use Java 17 and Maven modules.
+- Originally use bytecode and optional source inputs normalized into deterministic IR.
+- Originally use build-time knowledge generation with local runtime retrieval and a probe fallback.
 
 Consequences:
 
-- New implementation work must preserve determinism in the IR and distinguish implemented modules from planned modules.
+- The Java 17 and Maven foundation remains useful.
+- The bytecode/source/probe product architecture was superseded by the accepted OpenAPI-first decision below before its parsers or runtime components were implemented.
+- Existing v1 IR records remain legacy code only until the first v2 test-driven replacement task.
 
 Alternatives considered:
 
 - Refer to `docs/smartdoc-agent-design.md` for the detailed ADR alternatives and rationale.
+
+## 2026-09-08 - Adopt an OpenAPI-first sidecar architecture
+
+Status: Superseded
+
+Superseded by the direct Skill compilation decision and the later generated OpenAPI 3.1.0 input decision. OpenAPI-first remains the direction, but this ADR's URL-acquisition and broad-version scope is no longer current.
+
+Current scope note: the v3.2 MVP preserves OpenAPI-first input and the removal of source/bytecode/runtime probing, and accepts one frozen local JSON file per build whose root marker is exact OpenAPI 3.1.0. Swagger 2.0, other versions/formats, external references, and URL acquisition are deferred.
+
+Context:
+
+- RuoYi and similar services already expose a machine-readable Swagger/OpenAPI contract.
+- Parsing source or bytecode would duplicate existing framework work while still failing to describe all externally observable HTTP behavior.
+- The requested integration must not modify existing controllers or business APIs.
+
+Decision:
+
+- Treat frozen Swagger 2.0/OpenAPI 3.x specifications as the primary HTTP contract input.
+- Acquire specifications from explicit files or approved URLs in a sidecar build workflow.
+- Default URL acquisition to public HTTPS; allow loopback/private RuoYi endpoints only through an explicit, narrowly scoped network profile that pins scheme, host, port, and resolved IP/CIDR and rejects redirects or DNS rebinding outside that scope.
+- Remove source parsing, bytecode parsing, decompilation, embedded runtime SDK, and runtime probes from product scope.
+- Retain Java 17 and Maven as the implementation foundation.
+
+Consequences:
+
+- The first implementation unit is operation/schema/evidence normalization rather than class/method IR.
+- The current six v1 IR records and schema will be replaced without a compatibility layer because no released consumer exists.
+- The system can integrate with RuoYi without changing its API, but cannot infer facts absent or incorrect in OpenAPI.
+
+Alternatives considered:
+
+- Continue the ASM/source dual-channel design. Rejected because it is more invasive and expensive and is less aligned with the public API contract.
+- Scrape Swagger UI HTML. Rejected because the UI is an unstable presentation layer while JSON/YAML is the machine contract.
+
+## 2026-09-08 - Compile multiple governed knowledge sources into one Bundle
+
+Status: Superseded
+
+Superseded by the direct Skill package decision below.
+
+Context:
+
+- OpenAPI describes HTTP transport well but does not fully cover business workflows, troubleshooting, Excel layout, or Shapefile structure.
+- Teams already maintain useful software and API usage documentation.
+
+Decision:
+
+- Support explicitly managed Markdown documents with versioned source rules and front matter.
+- Support reviewed structured overlays for Excel, Shapefile, and audited HTTP-contract corrections.
+- Use field-specific authority: OpenAPI owns HTTP facts, domain overlays own domain contracts, reviewed documents own guidance, and AI content is lowest-authority derived material.
+- Preserve provenance for every indexed unit and reject stale, dangling, or conflicting protected facts in strict builds.
+- Preserve applied ContractCorrection records and their original/effective values in the Bundle instead of only baking replacements into normalized operations.
+
+Consequences:
+
+- Users can add their own documentation without modifying service code.
+- Rules must remain limited to inclusion, binding, classification, explanation, domain contracts, narrowly typed reviewed `ContractCorrection` records, and display; arbitrary patching is not an MVP feature.
+- Managed document content is treated as untrusted evidence, not as agent instructions.
+
+Alternatives considered:
+
+- Index all repository files automatically. Rejected because it creates noise, leaks unintended content, and weakens provenance.
+- Let Markdown or AI silently override OpenAPI fields. Rejected because it makes results order-dependent and unverifiable.
+
+## 2026-09-08 - Use structured retrieval before optional vector retrieval
+
+Status: Superseded
+
+Superseded by the direct Skill package decision below; no retrieval engine is in the current MVP.
+
+Context:
+
+- OpenAPI is identifier-rich and graph-structured.
+- Exact route, operation, permission, schema, and field queries are better served by deterministic indexes.
+- The reviewed sample becomes small when split by operation and its referenced schema closure.
+
+Decision:
+
+- Build exact maps, structured filters, a Chinese-friendly BM25 index, and a relation graph during Bundle construction.
+- At query time, retrieve candidate operations/documents first and only then expand the required schema/document closure.
+- Keep vector search behind an optional `SemanticReranker` interface and enable it only after offline evaluation proves a stable gain.
+- Enforce a default 12,000-token hard limit for retrieved evidence supplied to an LLM.
+
+Consequences:
+
+- MVP has no vector database or mandatory embedding model.
+- TypeScript generation follows the schema graph directly and never uses RAG or an LLM.
+- Low-confidence queries return candidates or abstain instead of guessing.
+
+Alternatives considered:
+
+- Always embed the complete OpenAPI. Rejected because it adds cost and version coupling without solving exact lookup, cyclic references, or contract quality problems.
+- Put the complete OpenAPI in every prompt. Rejected because it wastes context and scales poorly.
+
+## 2026-09-08 - Make deterministic offline builds the default
+
+Status: Superseded
+
+Superseded as a Bundle/AI-cache design. The narrower direct Skill build remains deterministic and offline under the current decision below.
+
+Context:
+
+- Repeated package builds must not regenerate unchanged AI documentation or consume tokens.
+- CI needs reproducible artifacts and clear network boundaries.
+
+Decision:
+
+- Separate `snapshot`, deterministic `validate/build/verify`, and explicit `enrich --allow-ai` operations.
+- Default SmartDoc builds use `reuse-only` mode and never fetch business sources, invoke documented APIs, or call an LLM. Maven/toolchain dependency resolution is outside this runtime boundary; the release offline gate uses pre-provisioned locked dependencies and `mvn -o` under network denial.
+- Cache optional AI artifacts by canonical unit, dependency closure, overlay, prompt, model, locale, and policy digest.
+- Store stable canonical EvidenceAnchors in reusable AI content artifacts, then deterministically bind them to the current snapshot evidence IDs when assembling a Bundle; an evidence-ID change alone must not force another model call.
+- Publish immutable, checksummed Knowledge Bundles; pin each session to one concrete bundle ID.
+
+Consequences:
+
+- Unchanged inputs produce zero LLM calls and zero AI tokens.
+- Partial changes invalidate only affected units and their dependent summaries.
+- Bundle import cannot trigger hidden generation.
+
+Alternatives considered:
+
+- Invoke AI automatically during every Maven package. Rejected because it is costly, nondeterministic, and requires network access in ordinary builds.
+- Mutate a published knowledge database in place. Rejected because it prevents reliable rollback and session reproducibility.
+
+## 2026-09-08 - Provide an independent grounded-chat service
+
+Status: Superseded
+
+Superseded by the direct Skill package decision below; AI chat is deferred until after real Skill usage validation.
+
+Context:
+
+- Users need a conversation window to ask how features, API parameters, Excel files, and Shapefiles should be used.
+- Browser clients must not receive LLM credentials or the complete unrestricted knowledge corpus.
+
+Decision:
+
+- Implement a separate Spring Boot service that imports verified Bundles, exposes search/evidence/TypeScript/session APIs, and serves a minimal built-in web page.
+- Filter access before retrieval, pack only relevant evidence, require citations, and abstain when evidence is insufficient.
+- Keep the MVP read-only; it explains and generates code but never invokes the documented business APIs.
+
+Consequences:
+
+- The same Bundle powers the web page, API, and separately exported Agent Skill sidecar.
+- Local use can bind to loopback; shared use requires an authentication/authorization adapter.
+- Actual API execution, workflow automation, and write-operation confirmation remain separate future decisions.
+
+Alternatives considered:
+
+- Embed a runtime SDK into every target application. Rejected because a separate service is easier to update, secure, and reuse.
+- Let the browser call the LLM directly. Rejected because it exposes credentials and weakens evidence and access controls.
+
+## 2026-09-08 - Adopt Skill-first developer delivery and defer Agent plugins
+
+Status: Superseded
+
+Superseded as a Bundle-derived export/install design. Skill-first delivery remains, but the current product generates the Skill ZIP directly and uses manual installation.
+
+Context:
+
+- Opening a fresh conversation is convenient but repeatedly requires developers to restore project and API context.
+- Frontend developers need a directly installable, version-pinned knowledge artifact after a backend/API release.
+- A platform plugin can provide live tools and runtime authorization, but generating or republishing one for every business build would couple tool lifecycle, permissions, and project knowledge unnecessarily.
+- Storing an installable Skill inside its source Bundle would either prevent it from naming the final `bundleId` or create a digest self-reference; prebuilding every audience profile would also make export policy changes alter Bundle identity.
+
+Decision:
+
+- Make an OpenAPI-only Codex project Skill part of MVP-1B, after the canonical Bundle, search, and TypeScript foundations; extend it with managed documents, domain rules, and multiple policy profiles in MVP-2.
+- Generate each installable Skill as a deterministic sidecar from a freshly verified immutable Bundle and an explicit, versioned export-profile file. Do not store Skill payloads or export profiles inside the source Bundle.
+- Pin `projectId`, `releaseVersion`, `knowledgeId`, exact `sourceBundleId`, export-policy digest, target adapter, security metadata, payload digests, and `skillPackageId` in the package manifest and project-level `smartdoc.skills.lock.json`.
+- Support only explicit, offline Codex project installation/update in MVP. Builds and exports never mutate developer projects, installation never follows `latest`, and local drift is not overwritten implicitly.
+- Generate the Agent instruction surface only from trusted fixed templates; untrusted source and AI text may appear only in filtered references.
+- Apply dependency-closed export filtering. Static-package authorization ends at export and controlled distribution; installed files are not protected by Server ACL.
+- Do not create an Agent-platform plugin/MCP connector in MVP-1/2. If Production later needs dynamic revocation, cross-project search, or runtime ACL, consider one separately versioned, knowledge-free connector whose every request names an exact `bundleId` and never silently falls back to `latest`.
+
+Consequences:
+
+- Web developers can install a reviewed API knowledge snapshot directly in their repository and use it without a running SmartDoc Server or model credential.
+- Bundle, Skill, and any future connector have separate identities and release cadences; one Bundle can produce multiple audience-specific packages without changing `bundleId`.
+- Export, package verification, safe atomic installation, drift detection, lock maintenance, trusted-template generation, and Codex discovery become MVP-1B acceptance work.
+- A copied static Skill cannot be revoked dynamically; restricted packages require classification labels, controlled artifact distribution, and repository/filesystem protection.
+
+Alternatives considered:
+
+- Generate a new Agent plugin for every business build. Rejected because it couples permissions and runtime tooling to fast-changing knowledge and adds unnecessary installation and compatibility overhead.
+- Put generated Skill payloads inside the canonical Bundle. Rejected because post-Bundle identity, per-audience export, and independent target-adapter evolution are cleaner and more verifiable as sidecars.
+- Defer all Skill work until the session service. Rejected because an OpenAPI-only project Skill delivers the primary developer workflow earlier and remains useful offline.
+
+## 2026-09-08 - Narrow the product to direct Skill compilation and immutable download
+
+Status: Superseded
+
+Context:
+
+- Swagger UI already provides a suitable human-facing rendering of the API contract.
+- The immediate developer need is not a general knowledge platform; it is an LLM-friendly, downloadable project Skill derived from the same OpenAPI.
+- The previous design combined canonical Knowledge Bundles, multiple governed sources, search, TypeScript generation, Skill export and installation, RAG, and a session service before any v2 implementation or test existed.
+- That combined scope created disproportionate implementation, security, evaluation, and operational risk.
+
+Decision:
+
+- Define the current product as an OpenAPI-to-Codex-Skill compiler plus a minimal read-only package download service.
+- Use one frozen local OpenAPI file as the MVP source and never scrape Swagger UI HTML.
+- Generate one directly installable Skill ZIP containing trusted-template instructions, a compact catalog, and separate tag, operation, and shared Schema references.
+- Preserve local `$ref` edges and render recursive relationships as links rather than recursively expanding complete Schema closures.
+- Make the Skill ZIP the only current product artifact; do not introduce a separate Knowledge Bundle.
+- Keep builds local, deterministic, and free of LLM, business-API, or external-reference network calls.
+- Publish only verified immutable packages, addressed by exact `projectId`, `releaseVersion`, and `skillPackageId`.
+- Make installation a manual developer action in MVP. The product does not modify consuming projects.
+- Defer search, RAG, AI enrichment, chat UI, TypeScript, managed documents, automatic installation, and broader format compatibility until real usage demonstrates a need.
+
+Consequences:
+
+- The first implementation has three primary hard problems: safe OpenAPI splitting, correct local Schema-reference navigation, and deterministic verifiable packaging.
+- The server becomes a small artifact distributor rather than a knowledge runtime.
+- Existing accepted decisions for multiple-source Bundles, structured retrieval, independent grounded chat, and Bundle-derived automatic Skill installation are superseded for the current product.
+- Deterministic offline behavior remains, but only for direct Skill generation and verification; the previous Bundle and AI-cache identity system is removed.
+- At the time of this decision, the exact OpenAPI version still required confirmation. The later generated OpenAPI 3.1.0 input decision resolves it as exact `openapi: 3.1.0` for the current MVP.
+- Future capabilities require separate accepted decisions and must not be pre-built as speculative extension modules.
+
+Alternatives considered:
+
+- Keep the full knowledge compiler and session-service roadmap. Rejected because it solves several unvalidated future problems before delivering the primary developer workflow.
+- Build an AI chat page first. Rejected because it adds model, retrieval, citation, ACL, and evaluation complexity before the Skill content and splitting strategy are validated.
+- Parse rendered Swagger UI pages. Rejected because presentation HTML is less stable and less complete than the underlying machine-readable OpenAPI contract.
+- Let the server generate packages on demand. Rejected for MVP because offline CI generation and read-only distribution are easier to test, secure, cache, and operate.
+
+## 2026-09-08 - Support OpenAPI 3.1 And Swagger 2.0 With Pinned RuoYi Fixtures
+
+Status: Superseded
+
+Superseded by the generated OpenAPI 3.1.0 input decision below after the producer boundary was clarified.
+
+Context:
+
+- The product scope is already limited to compiling one frozen API contract into one Skill ZIP and distributing verified packages.
+- The target input range is now explicitly OpenAPI 3.1.0 and Swagger 2.0 rather than one still-unknown first protocol.
+- A realistic project fixture is needed to validate splitting, shared schemas, Chinese tags, authentication, common response wrappers, uploads, and deterministic package behavior at useful scale.
+- RuoYi is a project family whose current and historical releases use different documentation stacks; a floating branch or an assumed dependency-to-spec mapping would not be a reproducible fixture.
+
+Decision:
+
+- Make `openapi-3.1-json` and `swagger-2.0-json` first-class MVP source profiles. Each build still consumes exactly one frozen local JSON file.
+- Accept OpenAPI 3.1.x as one feature set, while requiring the first OpenAPI project-level fixture to declare exact `openapi: 3.1.0`; require Swagger input to declare exact `swagger: "2.0"`.
+- Require an explicit source profile and cross-check it against the root marker. Do not auto-detect, silently switch, or rewrite protocol versions.
+- Implement two thin source adapters that normalize into one minimal model. Reference graph construction, Markdown rendering, Skill packaging, verification, CLI, and download service remain shared.
+- Preserve source-specific semantics and JSON Pointers. In particular, do not first convert Swagger 2.0 into OpenAPI 3.1 and risk losing body/formData, consumes/produces, collectionFormat, reusable response, or security-definition details.
+- Use the official `yangzongzhuan/RuoYi-Vue` project family for both project-level fixtures:
+  - OpenAPI baseline: v3.9.2, commit `0e2d75c23c0d7a1fa85f660f06a59a4dd1ba14c0`, captured from a versioned test-only `full` group and admitted only if the root marker is exact 3.1.0.
+  - Swagger baseline: v3.5.0, commit `5e64a93d115cfc65ef76eb0e4612d9a313448e29`, captured from `/v2/api-docs` and admitted only if the root marker is exact 2.0.
+- Commit only frozen, sanitized, attributed snapshots with source URL, tag, full commit, startup/capture procedure, root marker, raw/sanitized digests, license notice, sanitization changes, test-only overlay, and expected size/count metadata.
+- Keep small synthetic fixtures for profile conformance, cross-profile equivalence, recursion, dangling/external references, unsupported keywords, limits, and hostile free text. RuoYi complements rather than replaces edge-case tests.
+- Keep OpenAPI 3.0, YAML, URL acquisition, and external `$ref` outside the MVP.
+- This decision supersedes only the single-OpenAPI-3.1-profile assumption in the direct Skill compilation decision; the Skill-only artifact, deterministic offline build, manual installation, read-only download, and deferred chat scope remain unchanged.
+
+Consequences:
+
+- MVP adds one bounded parsing adapter and profile-specific conformance tests, not a second rendering or delivery pipeline.
+- The normalized model must include a small security-scheme representation and preserve dialect-specific source metadata needed by generated references.
+- Fixture acquisition is a release gate: library versions may select a candidate but cannot prove the emitted specification version.
+- Tests do not start RuoYi or access GitHub/Gitee; they consume committed snapshots only.
+- Package identity includes source profile, declared version, raw source digest, and original pointers, so semantically equivalent 3.1/2.0 inputs need not produce the same package ID.
+
+Alternatives considered:
+
+- Support only OpenAPI 3.1 and defer Swagger 2.0. Rejected because Swagger 2.0 is an explicit target and is represented by real RuoYi deployments.
+- Maintain two complete compiler pipelines. Rejected because all behavior after dialect normalization is shared and duplicated implementations would drift.
+- Use only a large RuoYi fixture. Rejected because a real project does not reliably cover malformed inputs, recursion, profile mismatches, or every dialect-specific edge.
+- Test against a live RuoYi branch or endpoint. Rejected because upstream drift and network/runtime dependencies would make tests slow and irreproducible.
+
+## 2026-09-08 - Treat Generated OpenAPI 3.1.0 JSON As The Sole Current Input
+
+Status: Accepted
+
+Scope amendment: the OpenAPI 3.1.0 JSON/core boundary remains accepted. The v3.3 compile-update decision below supersedes manual production snapshot refresh, mandatory testbed-first work, deterministic ZIPs, and immutable downloads. Production freshness must be established for each compilation; frozen fixtures remain appropriate for core tests.
+
+v3.4 amendment: the single-document-per-build limit is superseded. One service update accepts one or more required OpenAPI 3.1.0 JSON documents, parsed independently with document-local references.
+
+Context:
+
+- The target service uses springdoc-openapi 2.8.15 to generate its machine-readable API description.
+- Knife4j is an enhanced presentation/integration layer around the OpenAPI document and is not the data contract SmartDoc needs to compile.
+- SmartDoc's goal is to convert an already generated API document into an LLM-friendly Skill, not to test documentation UIs, reproduce framework scanning, or certify every historical specification version.
+- The proposed RuoYi and Swagger 2.0 fixture matrix added producer and compatibility work that is unnecessary for the first usable product.
+
+Decision:
+
+- Make one frozen local JSON document with exact root marker `openapi: 3.1.0` the sole current compiler input.
+- Treat the resulting JSON bytes as the authority. Core has no dependency on Spring Boot, springdoc internals, Knife4j, Swagger UI, or the running business application.
+- Use one small standalone Spring Boot fixture producer with Java 17, a pinned compatible Spring Boot 3.5.x patch, and `springdoc-openapi-starter-webmvc-api:2.8.15`.
+- Do not add Knife4j or a Swagger UI starter to the testbed. Set `springdoc.api-docs.version=OPENAPI_3_1`, expose representative controllers, and capture `/v3/api-docs` on loopback only during explicit fixture generation or refresh.
+- Commit the generated JSON plus exact dependency versions, capture command, root-version assertion, SHA-256, and operation/Schema counts. Ordinary core tests consume the frozen file and do not start Spring Boot.
+- Cover path/query/header parameters, JSON and multipart requests, multiple responses, shared/recursive schemas, security, examples, and Chinese tags in the one testbed.
+- Keep only small hand-written negative JSON fixtures for states a valid generator will not normally emit, such as dangling/external references, configured limit violations, unsupported versions, and hostile free text. These are data files, not additional sample projects.
+- Defer Swagger 2.0, OpenAPI 3.0, other OpenAPI 3.1 patch versions, YAML, and producer/UI-specific compatibility tests.
+- This decision supersedes the dual-profile and pinned-RuoYi fixture decision. It does not change direct Skill generation, deterministic packaging, manual installation, immutable download, or the decision to leave AI chat until last.
+
+Consequences:
+
+- The current parser, fixture set, and acceptance matrix become substantially smaller.
+- Knife4j can be added, removed, or upgraded by a source application without affecting SmartDoc, provided the frozen `/v3/api-docs` JSON remains within the accepted contract.
+- The testbed verifies that SmartDoc sees realistic springdoc output; it does not attempt to test or reimplement springdoc itself.
+- Supporting another document version later requires an explicit fixture-backed decision, not speculative adapter code now.
+
+Alternatives considered:
+
+- Keep RuoYi as the primary fixture. Rejected because it brings database, security, configuration, release, and upstream-drift variables that do not improve validation of the document-to-Skill compiler.
+- Include Knife4j in the testbed. Rejected because UI behavior is outside the product input boundary and the API-only springdoc starter already exposes the required JSON endpoint.
+- Start the Spring Boot testbed in every core test. Rejected because a committed snapshot is faster, deterministic, and sufficient for parser tests; the producer is only needed when refreshing the representative fixture.
+- Continue testing Swagger 2.0 now. Rejected because it is not part of the clarified target input and would double compatibility work before the main workflow exists.
+
+
+## 2026-09-08 - Require Per-Compilation Skill Updates Without Blocking The Business Build
+
+Status: Accepted
+
+Context:
+
+- The user defines the sole current product goal as generating an API Skill for frontend development.
+- Every compilation must update the Skill, and generation exceptions must not interrupt compilation. All other work is deferred.
+- v3.2 emphasized frozen-input conversion, deterministic ZIPs, immutable downloads, and manual installation but did not define compilation integration or non-blocking failure handling.
+
+Decision:
+
+- Restrict current work to API-document conversion, usable Skill content, compilation-triggered updates, and the checks required to make those updates correct and safe.
+- Preserve the OpenAPI 3.1.0 JSON input boundary and trusted-template/reference separation.
+- Require each configured compile invocation to attempt an update, including repeated no-change compilations. Identical API content may generate identical output.
+- Coordinate current-document preparation and Skill conversion within the same update flow. Failed preparation must not fall back to an old JSON and claim current-code synchronization.
+- Stage and validate a complete result before replacing the generator-owned output. Failed updates retain the previous complete Skill when one exists and clearly report stale/no-output status.
+- Isolate Skill configuration, preparation, conversion, timeout, and filesystem errors at the compilation boundary. Emit warnings and preserve the business build's own outcome; never suppress normal business compilation failures.
+- Retain basic resource/path limits, reference correctness, source metadata, external update status, and meaningful tests. Defer ZIP packaging, package identity, standalone CLI, download service, deployment, and cross-project installation management.
+- A standalone Spring Boot fixture producer is no longer a prerequisite. Start core tests with sanitized JSON and add a minimal integration fixture only when needed to verify actual document production.
+- Do not implement other product capabilities in this task or add speculative extension modules.
+
+Consequences:
+
+- Product design v3.3.0 and the documentation pack replace the old ZIP/download implementation roadmap.
+- The first integration question is how the target compile obtains a current contract, not how to publish a package.
+- Source digests identify input bytes; they cannot prove current-code freshness by themselves.
+- The current repository cannot yet demonstrate the required behavior: core files are deleted, the parent cannot load the missing core POM, and no target build/document configuration is present.
+- Maven/IDE entry-point coverage, exact ordering, timeout isolation, and replacement behavior require integration tests before implementation is called complete.
+- Process termination or failure to load Maven/plugin infrastructure is outside what an executing generator can catch.
+
+Alternatives considered:
+
+- Retain immutable ZIP/download MVP stages. Rejected for current scope because distribution infrastructure is not required for the specified generation workflow.
+- Recompile a manually frozen old snapshot every time. Rejected as proof of current-code synchronization; valid only when the static file is itself the authoritative contract.
+- Fail the business build on invalid documentation. Rejected because the user explicitly requires generation failures not to interrupt compilation.
+- Catch the entire business build or force its exit code to zero. Rejected because genuine business compilation failures must remain visible.
+- Write generated files over the previous output in place. Rejected because a failed run can leave an incomplete Skill and removed APIs can remain as stale files.
+
+## 2026-09-08 - Use A Thin Maven Integration For The First Compile-Update Slice
+
+Status: Proposed
+
+Context:
+
+- The repository currently uses Java 17 and a Maven parent.
+- A separate manual CLI does not satisfy the compilation trigger requirement.
+
+Decision:
+
+- Propose `smartdoc-agent-core` plus a thin `smartdoc-agent-maven-plugin` as the initial implementation boundary.
+- Verify the actual lifecycle binding and current-document preparation order with the target compile workflow before accepting the integration as complete.
+- Propose `target/smartdoc/<skillName>/` as the default generator-owned output. Confirm the actual destination and whether retention across `clean` is required.
+- Keep current-document production as an explicit integration dependency whose concrete mechanism is unknown; do not assume ordinary compilation already produces springdoc JSON or start business services implicitly.
+
+Consequences:
+
+- No plugin, output directory, or IDE coverage is documented as implemented.
+- An independent IDE compiler needs its own verified integration or delegation to the agreed build entry point.
+- The final output path and lifecycle details can be chosen during the first tested integration without restoring deferred distribution work.
+
+Alternatives considered:
+
+- Implement CLI and server first. Rejected for current scope because neither establishes the required per-compile update behavior.
+- Claim a Maven hook covers every possible compiler invocation. Rejected because the target entry points have not been established.
+
+## 2026-09-09 - Support Microservices And Multiple Documents Per Service
+
+Status: Accepted
+
+Context:
+
+- The user confirms microservices and multiple packages as essential project scenarios, not future extensions.
+- The previous single-document workflow did not define service ownership, multiple document inputs, or multi-module compilation coordination.
+
+Decision:
+
+- Generate one Skill per service from one or more explicitly configured required OpenAPI 3.1.0 JSON documents. Services update independently in shared or separate repositories.
+- Distinguish Java packages, Maven modules, document groups, and services. Existing document producers own package scanning; no source/framework scanner is added to core.
+- Require stable serviceId/skillName and service-local documentId values. Namespace operations by service/document/method/path, and schemas/security/references by originating document and pointer.
+- Parse each document independently, preserving same-named content and group provenance. Do not merge raw OpenAPI objects, infer equivalence, match references across documents, or invent gateway routing.
+- Require all configured documents to be ready for a service update. One failure retains that service's complete previous Skill, emits a warning/status, and permits other services and business compilation to continue.
+- Scope staging, replacement, write exclusion, and status to one service; detect output collisions without overwriting results or clearing a shared parent.
+- Assign one generation owner per service and verify full, single-service, partial-module, no-change, and parallel compilation. Partial builds with incomplete service inputs must diagnose the missed update rather than publish stale or mixed inputs.
+- Explicit document removal removes its references on the next successful service update; missing required input is an update failure, not an implicit deletion.
+- Keep global cross-service Skill aggregation, release/version coordination, and cross-repository scheduling deferred.
+
+Consequences:
+
+- Multi-service and multi-document fixtures and integration cases are part of current acceptance, not optional later tests.
+- Core adds document provenance and service-level content organization; the proposed Maven integration adds service-level readiness and output ownership. No new platform module is needed.
+- Product design v3.4.0 and all active project docs reflect this scope. Generation and integration remain unimplemented.
+- Actual module mappings, document production, partial-build entry points, and Maven execution ordering remain unknown and require a target integration test before a complete estimate or coverage claim.
+
+Alternatives considered:
+
+- Restrict current scope to one document only. Rejected because it excludes explicitly required service/group scenarios.
+- Produce a Skill for every Java package or Maven module. Rejected because those boundaries do not necessarily represent independently usable APIs.
+- Merge every microservice into one global Skill during each service compilation. Deferred because it adds unrelated build dependencies and global freshness coordination.
+- Publish a partial service Skill when one document fails. Rejected because it silently removes usable API knowledge or mixes revisions in a result labeled current.
+
+## 2026-09-09 - Establish The Implementation Plan With An Early Integration Gate
+
+Status: Accepted
+
+Context:
+
+- The user asks whether product design is ready and when the work plan will be updated.
+- v3.4 defines required service/document scope and failure behavior, while the real document producer, module ordering, and compile entry points are still unverified.
+
+Decision:
+
+- Treat v3.4 as the current implementation planning baseline; do not claim all technical integration choices are settled.
+- Maintain one executable P0-P5 plan in TASKS.md: build/test foundation, early integration validation, content conversion, complete safe updates, real compile integration, and frontend acceptance.
+- Start with the buildable foundation and investigate current-document/compile feasibility early. Source-independent conversion and update work can proceed on fixtures while target evidence is unavailable.
+- Require observed behavior and exact verification results to close stages. Synthetic document producers cannot certify the actual code-to-document production workflow.
+- Keep the thin Maven plugin proposal pending actual lifecycle/producer validation; do not introduce new product features or convert the requirement to package-time generation to hide a failed integration assumption.
+- Re-estimate remaining work after integration feasibility is established; the earlier single-document estimate is not a committed delivery date.
+
+Consequences:
+
+- Work-plan preparation is complete; no implementation stage is marked complete or started by this documentation task.
+- P0 is ready. Missing target configuration gates final integration verification but does not block local core development.
+- Product acceptance and implementation status remain distinct, and completed tasks require red-to-green/integration evidence appropriate to the behavior.
+
+Alternatives considered:
+
+- Keep revising product design until every implementation detail is known. Rejected because core requirements are sufficiently bounded and remaining uncertainty is better resolved by concrete probes.
+- Build the complete converter/plugin before investigating fresh-document production. Rejected because the highest integration uncertainty should be tested early.
+- Mark fixture-only generation as end-to-end completion. Rejected because it does not prove per-compilation freshness or target build behavior.
+
+## 2026-09-09 - Use A Multi-Package Spring Boot Service As The First Realistic Fixture
+
+Status: Accepted
+
+Context:
+
+- The user proposes annotated endpoints in a multi-package Spring Boot test service, multiple OpenAPI 3.1.0 JSON outputs, then Skill implementation.
+- This provides realistic producer input but requires explicit grouping and a distinction between fixture export and per-compilation updates.
+
+Decision:
+
+- Select one minimal standalone multi-package test service with two explicit document groups as P1's first realistic fixture, following P0's build/test setup.
+- Write assertions for version, group membership, API/field descriptions, and references before completing the matching sample behaviors. Persist only validated sanitized documents and reproducible producer metadata for core tests.
+- Use API mappings, explicit OpenAPI annotations, and validation metadata; do not rely on source comments being exported implicitly.
+- Keep test-service startup/capture bounded and isolated to fixture generation/integration tests. It does not authorize an implicit production service startup requirement.
+- Record the lifecycle distinction: the official springdoc Maven plugin reads a running application during integration-test; its example runs `mvn verify`. A default `mvn package` or `mvn compile` does not by itself demonstrate that export path or satisfy the product compile-update requirement.
+- Generate one service Skill from the resulting multiple documents in P2. Continue to verify ordinary compilation freshness/failure handling and separate-service/multi-module cases before closing P1/P4.
+
+Consequences:
+
+- TASKS.md contains the concrete P1 fixture steps; the planned path is `testbeds/springdoc-multi-package/`, not an implemented module.
+- The minimal fixture is now selected current work; a full microservice platform remains deferred. No generator or sample code was created by this workflow-clarification task.
+- The sample addresses one-service/multiple-package/group coverage; it cannot alone certify independent microservices, reactor order, or production compile-time generation.
+
+Sources checked on 2026-09-09:
+
+- [springdoc v2 grouping and properties](https://springdoc.org/v2/)
+- [springdoc Maven plugin](https://github.com/springdoc/springdoc-openapi-maven-plugin)
+- [Maven build lifecycle](https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html)
+
+## 2026-09-09 - Implement The Standalone Testbed Before Core
+
+Status: Accepted
+
+The user requests the minimal Spring Boot test service first. Advance the independent P1.3 fixture ahead of P0; keep the user's deleted core files unchanged and leave root-reactor repair in P0. This supersedes the earlier sequencing dependency for this standalone probe only.
+
+- Pin Java 17, Spring Boot 3.5.9 and springdoc API-only 2.8.15. The official springdoc 2.8.15 release uses Boot 3.5.9; the actual combination passes our four tests. No UI, persistence, service registry or real authentication is added.
+- Use explicit account (user) and business (order/file) package groups. Shared Address and ApiError schemas remain local in each exported document; recursive UserView is preserved.
+- Export through a real random loopback port in SpringBootTest with HTTP and fork timeouts and context cleanup. A fixed documented default server address prevents random port differences in snapshots.
+- Freeze only asserted documents using an explicit refresh script. Store JSON digests, producer source digests, versions and operation/schema counts. Core will consume these bytes offline; ordinary test runs do not modify frozen files.
+- Keep the standalone POM outside the root reactor. Test-phase startup is intentionally confined to this sample; compile does not export documents and no Skill generation or production lifecycle decision is implied.
+
+Evidence: four behavioral failures (404) before controllers/groups, then four passing tests, a passing clean refresh, and successful executable JAR packaging with previously tested code. P1.3 is complete; P0 and the remaining P1/P4 production gates are open.
+
+Source: [springdoc 2.8.15 release](https://github.com/springdoc/springdoc-openapi/releases/tag/v2.8.15), checked 2026-09-09.
+
+## 2026-09-09 - Add Swagger UI To The Testbed
+
+Status: Accepted
+
+At the user's request, replace the testbed's API-only starter with `springdoc-openapi-starter-webmvc-ui:2.8.15`. This supersedes the earlier no-UI constraint for this testbed only. Keep the existing grouped OpenAPI JSON contract and core dependency boundary. The standard `/swagger-ui.html` entry discovers account/business groups automatically; no duplicate group configuration or custom UI is necessary.
+
+Verification: the new HTTP test first failed with 404; after the dependency change all five tests passed. It checks the redirect, HTML, JavaScript resource and exact two-group swagger-config mapping. Fixture refresh passed; both JSON digests remain unchanged, while producer POM metadata is refreshed.
+
+Reference: [springdoc Swagger UI setup](https://springdoc.org/v2/), checked 2026-09-09.
+
+## 2026-09-09 - Deliver Completed Milestones Through GitHub
+
+Status: Accepted
+
+The user requests updated implementation plans and a project commit/push, and authorizes the same delivery sequence for future completed parts. Record the workflow in AGENTS.md: complete the requested slice, verify it, update relevant docs, commit related changes, and perform a normal push to the configured GitHub remote. Report the resulting commit and verification evidence. Missing remote/authentication or a conflict requiring user input is reported without force-pushing. This does not schedule background work or authorize starting unrelated stages.
+
+The current milestone includes the v3.4 scope/docs, previously requested legacy/local-skill removal, the standalone P1.3 producer and Swagger UI. P0 and production integration remain incomplete; the known missing core POM is documented rather than repaired as part of this delivery.

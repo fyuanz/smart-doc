@@ -2,45 +2,78 @@
 
 ## Purpose
 
-SmartDoc-Agent is a Java-based intelligent software documentation engine. It extracts deterministic metadata from compiled bytecode or optional source code during the build, uses an LLM to produce a structured `smartdoc.json` knowledge base, and serves low-latency guidance at runtime.
+SmartDoc-Agent converts API documentation into a Skill for frontend development. Every configured compilation must trigger a Skill update, and Skill generation failure must not interrupt the business build. All other product work is deferred.
 
-The detailed product and architecture specification is `docs/smartdoc-agent-design.md`, which is the current source of truth for product requirements and confirmed architectural decisions.
+The current source of truth is `docs/smartdoc-agent-design.md`, version 3.4.0. Microservices, multiple Java packages/modules, and multiple OpenAPI documents per service are required current scenarios. The previous compiler-plus-download-service scope remains superseded.
 
 ## Target Users
 
-- SDK and component-library maintainers.
-- CI/CD and platform engineering teams.
-- Downstream development teams and third-party integrators.
-- Users who need guidance for black-box JARs or legacy systems.
+- Frontend developers using an API Skill with their coding agent.
+- Backend maintainers connecting API documentation and Skill generation to their compilation workflow.
 
-## Core Workflows
+## Core Workflow
 
-1. Parse `.class`/`.jar` input by default, or `.java` input when source access is allowed.
-2. Normalize extracted facts into the versioned intermediate representation (IR).
-3. Generate and validate the semantic `smartdoc.json` knowledge base during the build.
-4. Answer runtime questions from local search results.
-5. Fall back to a runtime probe and LLM when local knowledge is missing or low confidence.
+1. During each configured service compilation, prepare all configured required API documents and freeze the complete input set for this update.
+2. Parse each OpenAPI 3.1.0 JSON document independently and resolve its local references within that document.
+3. Render trusted Skill instructions, a compact catalog, operations, shared schemas, and optional tag navigation.
+4. Validate a complete staged service Skill and replace only that service's generator-owned output directory.
+5. On failure or timeout, warn, retain the previous complete Skill if available, and let the business compilation continue with its own normal success/failure semantics.
 
 ## Current Status
 
-- The Maven parent project and `smartdoc-agent-core` module exist.
-- Java IR records and `ir-schema.json` are implemented.
-- A local Git repository is initialized with `main` as its primary branch and an initial project snapshot.
-- The 2026-09-07 initialization baseline passes `mvn test` across both Maven reactor projects.
-- No test sources exist yet, so the successful baseline currently verifies compilation and Maven configuration rather than behavior.
-- Bytecode parsing, source parsing, LLM integration, generation, runtime search, probe, CLI, plugins, testbeds, and demos remain planned.
+- Product scope v3.4 is ready as an implementation planning baseline; actual producer/lifecycle integration remains to be verified.
+- The P0-P5 work plan is active. At the user's request, the standalone P1.3 testbed was implemented first; P0 remains ready and core work has not started.
+- The Java 17 Maven parent exists and references `smartdoc-agent-core`.
+- The legacy core POM, six IR records, and `ir-schema.json` have been removed. No replacement core implementation or tests exist.
+- The missing core POM prevents Maven project loading; the earlier baseline passed with no tests before these deletions.
+- Core generation and compilation integration remain unimplemented. A thin Maven plugin is proposed, not implemented.
+- The target application's current-document production workflow, actual compile entry points, and output destination are unknown.
+- The first realistic fixture exists at `testbeds/springdoc-multi-package/`: Java 17, Spring Boot 3.5.9, springdoc 2.8.15, four packages and two explicit groups. Five tests pass; validated OpenAPI 3.1.0 snapshots and metadata are in `fixtures/`. This alone does not prove independent microservices or ordinary-compile integration.
 
-## Key Commands
+## Commands
 
-```bash
-mvn test
-mvn compile
+Standalone testbed (independent of the broken root reactor):
+
+```text
+mvn -f testbeds/springdoc-multi-package/pom.xml test
+mvn -f testbeds/springdoc-multi-package/pom.xml spring-boot:run
+powershell -NoProfile -File testbeds/springdoc-multi-package/refresh-fixtures.ps1
 ```
+
+Tests start the testbed on a random loopback port and close it afterward. Manual startup uses `127.0.0.1:18080`; see the testbed README. Only explicit refresh replaces frozen fixture files.
+
+Existing Maven entry points, currently blocked by the missing core POM:
+
+```text
+mvn compile
+mvn test
+```
+
+The target integration must cover ordinary and repeated compilation without requiring `clean`, and packaging that traverses compilation. Exact plugin binding/order must be verified with integration tests. IDE-independent compilation is not automatically covered by Maven integration.
+
+The former `smartdoc skill build`, `smartdoc skill verify`, and `smartdoc serve` commands are deferred; they do not exist.
 
 ## Constraints
 
-- Java 17 and Maven multi-module build.
-- Bytecode input is the default to protect source code.
-- The IR must contain only facts that parsers can extract deterministically.
-- Runtime search should avoid network and LLM calls on the primary path.
-- The planned runtime SDK target is under 300 KB and a typical local lookup target is under 20 ms.
+- Retain Java 17/Maven and the current OpenAPI 3.1.0 JSON input scope; no format compatibility expansion.
+- A frozen fixture is sufficient for core tests, but repeated conversion of an old generated snapshot does not prove synchronization with current source code.
+- Input preparation, freshness failure, generation, output replacement, and timeout must be included in the Skill failure boundary.
+- Core consumes fixed local document bytes without LLM calls, business API calls, external-reference access, framework scanning, or UI parsing.
+- The production document provider remains to be established; do not invent an automatically started business service or treat a deployed old instance as current compilation output.
+- Preserve existing contract facts and local multi-level/shared/recursive references; report unsupported or dangling references explicitly.
+- API free text is untrusted reference material and must not enter the trusted `SKILL.md` instruction template.
+- Use bounded processing, safe stable filenames, complete staging, and replacement that preserves the old valid result on failure.
+- Every compile attempts an update even when API content is unchanged. Identical content may remain identical.
+- Minimal source metadata and update status are needed; package IDs, payload digest inventories, deterministic ZIPs, downloads, CLI, and installation management are deferred.
+- Proposed default output is `target/smartdoc/<skillName>/`; final destination is unconfirmed. `clean` may remove prior target artifacts.
+- Automatic generation-side updates do not imply cross-project installation or distribution.
+- One service produces one Skill; each service accepts one or more explicitly identified OpenAPI documents. Multiple services update independently, including in separate repositories.
+- Java packages, Maven modules, document groups, and services are distinct concepts. Existing document producers own package scanning; a service has one designated generation entry point with verified document readiness.
+- Namespace operations, schemas, security schemes, links, and metadata by service/document identity. Do not overwrite or semantically merge same-named items across documents.
+- All configured documents are required. One failure retains that service's old complete Skill and warns; other service updates continue. Explicit group removal cleans that group on the next successful update.
+- Isolate output, staging, locking, and status by service. Partial compilation must report unavailable service documents rather than silently skipping or publishing mixed old/new inputs.
+- Full, single-service, partial-module, repeated no-change, and parallel compile coverage remains to be verified. Global cross-service Skill aggregation and release coordination are deferred.
+
+The testbed also provides Swagger UI at `http://127.0.0.1:18080/swagger-ui.html`, with account/business group selection for manual API inspection.
+
+Milestone delivery follows AGENTS.md: verify each completed part of requested work, update documentation, commit, and push to the configured GitHub remote. This does not automatically begin the next product stage.

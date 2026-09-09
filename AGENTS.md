@@ -12,12 +12,6 @@ Before analyzing, planning, or modifying code, read these files when they exist:
 
 Do not scan the whole repository before reading these files. Use targeted `rg` searches afterward.
 
-## Documentation Skill
-
-The repository documentation skill is located at `.agents/skills/ai-project-docs/SKILL.md`.
-
-Use `ai-project-docs` when the documentation pack is missing or stale, or when work changes project structure, module boundaries, commands, task status, or technical decisions. Ordinary code changes do not require running the full skill when the documentation remains accurate.
-
 ## Development Rules
 
 - Write tests before implementation and keep the red to green sequence.
@@ -36,3 +30,10 @@ When a change affects documented facts, update the relevant `docs/codex/` files 
 ## Verification
 
 Run checks appropriate to the change and report them. If verification cannot run, explain why.
+
+## Milestone Delivery
+
+- After completing an independently reviewable part of the user's requested work, run appropriate verification, update the project docs, then commit and push to the configured GitHub remote without asking for confirmation again.
+- Commit changes belonging to that completed work; do not include unrelated edits, secrets, generated build output, or temporary files.
+- Use normal pushes. Do not force-push or overwrite remote history. If the remote is missing, authentication fails, or integration requires user input, finish the local work and report the specific blocker.
+- This is the delivery workflow for requested work, not a schedule or authorization to start additional product stages autonomously.

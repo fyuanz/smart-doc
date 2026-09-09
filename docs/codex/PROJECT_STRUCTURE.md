@@ -1,16 +1,11 @@
 # Project Structure
 
-## Directory Map
+## Current Directory Map
 
 ```text
 .
 |-- AGENTS.md
 |-- .gitignore
-|-- .agents/
-|   `-- skills/ai-project-docs/
-|       |-- SKILL.md
-|       |-- agents/openai.yaml
-|       `-- assets/
 |-- docs/
 |   |-- smartdoc-agent-design.md
 |   `-- codex/
@@ -19,12 +14,13 @@
 |       |-- MODULES.md
 |       |-- TASKS.md
 |       `-- DECISIONS.md
-|-- smartdoc-agent-core/
-|   |-- pom.xml
-|   `-- src/main/
-|       |-- java/com/smartdoc/agent/core/ir/
-|       `-- resources/schema/ir-schema.json
-|-- project/
+|-- testbeds/
+|   `-- springdoc-multi-package/
+|       |-- pom.xml           # standalone Spring Boot parent
+|       |-- README.md
+|       |-- refresh-fixtures.ps1
+|       |-- fixtures/         # account/business JSON and metadata
+|       `-- src/              # sample application and contract/runtime tests
 `-- pom.xml
 ```
 
@@ -32,30 +28,39 @@
 
 | Path | Purpose |
 | --- | --- |
-| `AGENTS.md` | Always-on repository instructions for AI development. |
-| `.gitignore` | Excludes Maven output, IDE metadata, local environment files, logs, temporary files, and OS metadata. |
-| `.agents/skills/ai-project-docs/SKILL.md` | Discoverable workflow for creating and maintaining the AI documentation pack. |
-| `docs/smartdoc-agent-design.md` | Product requirements and architecture source of truth. |
-| `pom.xml` | Java 17 Maven parent project and module list. |
-| `smartdoc-agent-core/pom.xml` | Core module build configuration. |
-| `smartdoc-agent-core/src/main/resources/schema/ir-schema.json` | IR JSON Schema contract. |
+| `AGENTS.md` | First-read, test-first development, and documentation rules |
+| `docs/smartdoc-agent-design.md` | v3.4 scope, service/document boundaries, compile updates, and acceptance |
+| `pom.xml` | Java 17 Maven parent; references the missing core POM |
+| `docs/codex/DECISIONS.md` | Historical and current scope decisions |
+
+The legacy `smartdoc-agent-core/` files were removed. An empty local directory is not retained by Git; the root POM still references the missing module until P0 rebuilds it.
+
+## Proposed Implementation Locations
+
+These paths are proposals, not existing implementations:
+
+- `smartdoc-agent-core/src/main/java/com/smartdoc/agent/core/`: thin API model, OpenAPI parsing, local references, Skill rendering and necessary checks; split responsibilities when implemented, without speculative packages.
+- `smartdoc-agent-core/src/main/resources/`: trusted Skill templates.
+- `smartdoc-agent-core/src/test/`: sanitized OpenAPI fixture, small boundary inputs, and meaningful semantic tests.
+- `smartdoc-agent-maven-plugin/`: proposed thin compile integration, document preparation coordination, failure isolation, bounded execution, staging/replacement, and status.
+- Plugin integration tests: full, single-service, partial-module, repeated, and parallel compilation, document readiness, and per-service non-blocking generation failures; choose test paths with the first implementation.
+
+Do not add CLI, server, package repository, generic ingestion, or distribution modules. The implemented standalone fixture at `testbeds/springdoc-multi-package/` has `user`, `order`, `file`, and `common` packages and explicit `account`/`business` groups. It is outside the root reactor and must not become a production dependency. Future core tests consume its frozen sanitized snapshots rather than start it on every run.
 
 ## Generated Or Ignored Directories
 
-| Path | Notes |
-| --- | --- |
-| `**/target/` | Maven build output; do not treat it as source. |
-| `.idea/`, `.vscode/`, `.settings/` | Local IDE configuration. |
-| `.env`, `.env.*` | Local environment and secret files; `.env.example` remains trackable. |
-| `*.log`, `*.tmp` | Local logs and temporary files. |
+- Maven `**/target/` output is not source.
+- `target/smartdoc/<skillName>/` is the proposed Skill output, not implemented.
+- Staging and update status should be outside the final Skill directory and inside a controlled output parent; exact names are implementation details.
+- Each service owns a unique Skill output, staging, lock, and status location. Proposed references use `references/documents/<documentId>/operations/`, `schemas/`, and optional `tags/`; single-document services also use a document namespace.
+- Preserve safe local ignore rules for IDE files, secrets, logs, and temporary files.
+- Generated restricted API documentation must not be committed as a substitute for sanitized fixtures.
 
 ## Caution Areas
 
-- Preserve the IR contract and its JSON Schema together.
-- Treat planned modules in the design document as plans until their directories and Maven modules actually exist.
-- Do not infer requirements that are absent from the design document or current code.
-
-## Where To Add New Work
-
-- Current IR contract work belongs under `smartdoc-agent-core/src/main/java/com/smartdoc/agent/core/ir/` and its schema resource.
-- Future module paths should follow `docs/smartdoc-agent-design.md` and be added to the parent `pom.xml` when implemented.
+- Do not silently restore the user's core deletions or call the missing-POM state a completed migration.
+- Output replacement must only affect a validated generator-owned directory, never a source root or a directory with unrelated manual content.
+- Do not treat a local test snapshot as proof of current-code freshness in production.
+- Do not claim Maven integration covers independent IDE compilation without verification.
+- Stable links and filenames matter; a ZIP identity/verification platform is outside scope.
+- Never replace a shared parent containing multiple service outputs. Do not infer service boundaries from Java packages or Maven directory names.
