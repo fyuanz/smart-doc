@@ -21,6 +21,9 @@
 |       |-- refresh-fixtures.ps1
 |       |-- fixtures/         # account/business JSON and metadata
 |       `-- src/              # sample application and contract/runtime tests
+|-- smartdoc-agent-core/
+|   |-- pom.xml
+|   `-- src/                # input validation, Skill generation, local refs and tests
 `-- pom.xml
 ```
 
@@ -37,10 +40,10 @@ P0 rebuilt smartdoc-agent-core/pom.xml and src/main/java/com/smartdoc/agent/core
 
 ## Proposed Implementation Locations
 
-These paths are proposals, not existing implementations:
+Core paths now exist; the Maven plugin remains proposed:
 
-- `smartdoc-agent-core/src/main/java/com/smartdoc/agent/core/`: thin API model, OpenAPI parsing, local references, Skill rendering and necessary checks; split responsibilities when implemented, without speculative packages.
-- `smartdoc-agent-core/src/main/resources/`: trusted Skill templates.
+- `smartdoc-agent-core/src/main/java/com/smartdoc/agent/core/`: OpenApiInput.java (version/JSON boundary), SkillGenerator.java (service assembly), DocumentReferences.java (local graph, contract rendering and links).
+- Trusted Skill template currently resides in SkillGenerator.java; no resources directory is needed.
 - `smartdoc-agent-core/src/test/`: sanitized OpenAPI fixture, small boundary inputs, and meaningful semantic tests.
 - `smartdoc-agent-maven-plugin/`: proposed thin compile integration, document preparation coordination, failure isolation, bounded execution, staging/replacement, and status.
 - Plugin integration tests: full, single-service, partial-module, repeated, and parallel compilation, document readiness, and per-service non-blocking generation failures; choose test paths with the first implementation.
@@ -50,7 +53,7 @@ Do not add CLI, server, package repository, generic ingestion, or distribution m
 ## Generated Or Ignored Directories
 
 - Maven `**/target/` output is not source.
-- `target/smartdoc/<skillName>/` is the proposed Skill output, not implemented.
+- `smartdoc-agent-core/target/smartdoc/springdoc-multi-package-api/` is the verified test-generated Skill. Production output/publishing remains unimplemented.
 - Staging and update status should be outside the final Skill directory and inside a controlled output parent; exact names are implementation details.
 - Each service owns a unique Skill output, staging, lock, and status location. Proposed references use `references/documents/<documentId>/operations/`, `schemas/`, and optional `tags/`; single-document services also use a document namespace.
 - Preserve safe local ignore rules for IDE files, secrets, logs, and temporary files.

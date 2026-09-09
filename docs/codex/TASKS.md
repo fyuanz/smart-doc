@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-Scope review completed: one or more API documents per service → one frontend Skill per service, updated on every configured compilation, with generation failures isolated from the business build and other services. Product design v3.4.0 is the implementation baseline. P1.3's standalone multi-package testbed is implemented; P0 core foundation is complete; conversion and compilation integration remain unimplemented.
+Scope review completed: one or more API documents per service → one frontend Skill per service, updated on every configured compilation, with generation failures isolated from the business build and other services. Product design v3.4.0 is the implementation baseline. P1.3's standalone multi-package testbed is implemented; P0 is complete; the first P2 snapshot conversion slice is complete, while full conversion coverage and compilation integration remain open.
 
 ## Completed Tasks
 
@@ -37,13 +37,13 @@ P1.3 evidence:
 
 ## Work Plan
 
-Status vocabulary: **Ready** means it can be started; **Pending** means listed dependencies must be met; **Needs target evidence** identifies an external-information gate; **Complete** requires recorded verification evidence.
+Status vocabulary: **Ready** means it can be started; **In progress** means a verified slice exists with remaining acceptance; **Pending** means listed dependencies must be met; **Needs target evidence** identifies an external-information gate; **Complete** requires recorded verification evidence.
 
 | Stage | Deliverable | Dependencies | Status |
 | --- | --- | --- | --- |
 | P0 | Buildable core foundation and first tested input rule | Existing repository | Complete |
 | P1 | Verified current-document and compilation integration contract | Standalone testbed independent of P0; target configuration for final verification | P1.3 complete; remaining integration needs target evidence |
-| P2 | Usable per-service Skill from one or more documents | P0; independent of the target producer | Ready |
+| P2 | Usable per-service Skill from one or more documents | P0; independent of the target producer | In progress: two-snapshot Skill delivered |
 | P3 | Complete service updates with observable failure and preserved output | P2 | Pending |
 | P4 | Real per-compilation integration, including multiple services/modules | P1 verified, P2, P3 | Pending |
 | P5 | End-to-end/frontend acceptance and minimal usage instructions | P4 | Pending |
@@ -166,7 +166,7 @@ Distribution visibility, storage, gateway deployment, and a pinned Spring Boot t
 
 ## Known Gaps
 
-P0 is complete with a new core POM and 19 input tests. Next: P2 using frozen account/business fixtures; production P1/P4 gates remain open.
+P0 and the first P2 snapshot slice are complete. Root tests pass 26 cases. Broader P2 semantics/reference/limit coverage, P3 publishing and P1/P4 production integration remain open.
 
 ## Last Updated
 
@@ -185,3 +185,14 @@ P0 is complete with a new core POM and 19 input tests. Next: P2 using frozen acc
 - Exact textual 3.1.0 only; distinct MISSING_VERSION, UNSUPPORTED_VERSION and INVALID_JSON. Invalid roots, duplicate keys and trailing JSON are rejected.
 - New core POM and corrected parent description; no legacy IR. P2 is authorized next, independently of compilation integration.
 
+
+## 2026-09-09 - P2 First Snapshot Skill Delivered
+
+- Test-first evidence: 5 new generator tests failed (2 assertions, 3 placeholder errors), with all 19 P0 tests still passing. Implementation then passed all 24. Two additional cases brought the total to 26; the missing catalog entry for unreferenced schemas failed before the fix. Final root `mvn -B test`: 26 passed, 0 failures/errors.
+- Uses existing account/business bytes without starting the service. One Skill contains 4 operation files, 7 schema files, 2 document contexts, a catalog, source metadata and trusted SKILL.md (16 files).
+- Tests compare complete operation/schema JSON, assert overrides, document/service identity, recursive/shared/multi-level and escaped local pointers, dangling/external reference failures, unsafe identities, case-safe filenames, input/schema-file bounds and link targets. Source text is excluded from SKILL.md; JSON code-fence escaping preserves data.
+- Review artifact: `smartdoc-agent-core/target/smartdoc/springdoc-multi-package-api/`; root `mvn test` recreates it through a fixture test. Generated target files are not committed or installed.
+- P2 remains in progress: path-item references, dynamic/rebased schema references are explicitly rejected; fuller reusable-example/link semantics, malformed structure coverage and all processing limits need further tests before whole-stage acceptance. These unsupported cases are absent from the two requested snapshots.
+- No P3 or P4 started. Source freshness, safe publication, ordinary/repeated compile integration and actual consuming-agent acceptance remain unverified.
+- P0 commit e623fa9 was created; its first GitHub push failed on a port 443 connection timeout. Normal push is retried with this milestone.
+- Skill frontmatter and entrypoint were manually inspected. The skill-creator quick_validate.py could not run because bundled Python lacks PyYAML; a temporary dependency-install attempt did not complete and was stopped. This does not replace the passing Java content/link tests.

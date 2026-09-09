@@ -592,3 +592,11 @@ The current milestone includes the v3.4 scope/docs, previously requested legacy/
 Status: Accepted
 
 Use existing managed Jackson/JUnit versions with explicit JUnit 5 discovery. Accept one JSON object with textual openapi exactly 3.1.0; distinguish missing version, unsupported version and invalid JSON. Reject duplicate keys and trailing tokens. This is not full specification validation. No legacy IR is restored. Root tests demonstrate 19-test red-to-green. Proceed to fixture-based P2 separately from unverified production integration.
+
+## 2026-09-09 - Deliver A Fixture-Based Core Skill Before Publication Integration
+
+Status: Accepted
+
+At the user's request, consume the existing account/business snapshots after P0 and render one service Skill. Use a thin JSON tree and retain full operation/schema contract data in Markdown code blocks instead of introducing legacy IR or lossy field summaries. Add effective parameter/server/security context and document-local graph links; recursion remains edges. Keep trusted instructions fixed except validated service/Skill identities, and keep source free text in references.
+
+Core returns an immutable relative-path/content map. Test code exports the sample under target; production writes, complete replacement, locking and compile coordination remain P3/P4. Explicit required map entries fail as a set. Stable safe names and pointer/path hashes isolate files, while a group-aware catalog supplies readable navigation. Reject unsupported reference semantics explicitly and leave broader P2 acceptance open. Input digests identify snapshots and cannot establish compilation freshness.

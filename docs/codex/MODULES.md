@@ -5,7 +5,7 @@
 | Module | Responsibility | Status |
 | --- | --- | --- |
 | Parent project | Java 17/Maven dependency management and module aggregation | Buildable; root tests execute |
-| `smartdoc-agent-core` | OpenAPI-to-Skill content conversion and necessary checks | P0 complete: input validator and 19 tests |
+| `smartdoc-agent-core` | OpenAPI-to-Skill content conversion and necessary checks | P0 complete; P2 snapshot generator, 26 total tests |
 | `smartdoc-agent-maven-plugin` | Compilation trigger and safe, non-blocking update coordination | Proposed, not implemented |
 | AI project docs | Persistent scope, context, and implementation guidance | Exists; refreshed for v3.4 |
 | `testbeds/springdoc-multi-package` | Standalone annotated sample and validated two-document fixture export | Implemented; five tests pass, snapshots frozen |
@@ -17,6 +17,12 @@ Coordinates: `com.smartdoc.agent:smart-doc-agent:1.0.0-SNAPSHOT`.
 The parent describes OpenAPI-to-Skill conversion. Core uses existing managed Jackson 2.16.1 and JUnit 5.10.2, compiler 3.13.0 and Surefire 3.2.5. No legacy IR is restored. Add a plugin module only with its first tested slice.
 
 ## Core
+
+Implemented first P2 slice: `SkillGenerator.generate(serviceId, skillName, documents)` returns an immutable complete content map and performs no filesystem or network actions. `DocumentReferences` renders contract JSON in Markdown with local graph links. Operation files preserve original operations plus effective parameter/server/security context; schema files preserve exact JSON semantics. Catalogs list all operations and schemas by document. Names are safe lowercase IDs; operation paths and schema pointers use SHA-256 filenames to avoid unsafe characters and case collisions. Metadata records service/document identity and each input digest.
+
+Bounds: 32 documents, 8 MiB per document, 32 MiB aggregate input, 128 graph nesting levels, 5000 schema/reference targets per document, 10000 output files and 64 MiB output. The final output cap is checked before returning the content map, not a process memory guarantee. Dynamic/rebased schema references and path-item references are explicitly unsupported; only local JSON Pointer fragments are accepted. Example/default/enum/const payloads remain data, not reference traversal targets. Broader OpenAPI semantics and malformed-structure coverage remain P2 follow-up; this is not a full specification validator.
+
+The test exports only sanitized snapshots under target. No filesystem update/rollback, source freshness, compiler hook or agent discovery is implied.
 
 Target responsibilities:
 
