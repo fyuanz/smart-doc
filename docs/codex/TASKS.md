@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-Scope review completed: one or more API documents per service → one frontend Skill per service, updated on every configured compilation, with generation failures isolated from the business build and other services. Product design v3.4.0 is the implementation baseline. P0, P2, and P3 are complete; P1.3's standalone producer is available; production compilation integration needs target evidence.
+Scope review completed: one or more API documents per service → one frontend Skill per service, updated on every configured compilation, with generation failures isolated from the business build and other services. Product design v3.4.0 is the implementation baseline. P0, P2, and P3 are complete. P4 is in progress: authoritative static JSON is verified through real Maven builds; generated-document production still needs target evidence.
 
 ## Completed Tasks
 
@@ -25,10 +25,11 @@ Scope review completed: one or more API documents per service → one frontend S
 | P0: Establish the core foundation | Root Maven tests execute; exact 3.1.0 JSON input boundary and explicit diagnostics pass |
 | P2: Generate a usable per-service Skill | Two grouped snapshots generate one navigable Skill; contract, reference, isolation, navigation and limit tests pass |
 | P3: Publish complete service updates safely | Staging, validation, ownership, timeout, locking, recovery, status, stale-removal and service-isolation tests pass |
+| P4 static-document Maven slice | Compile goal, repeat/package/targeted/parallel entry points, warnings, retention, and normal Java failure semantics pass in a standalone reactor |
 
 ## Active Tasks
 
-P0, P2, and P3 are complete. P1.3 remains the local fixture producer; P1's production integration gates remain open because the target application's document-production and compile entry points are not present. P4 cannot be closed from fixed core inputs because they do not prove production freshness or real compile behavior.
+P0, P2, and P3 are complete. The Maven goal and static-authoritative document route are implemented and verified. P1.3 remains the runtime springdoc fixture producer; P1/P4 generated-document gates remain open because the target application's production and freshness contract is not present.
 
 P1.3 evidence:
 
@@ -45,13 +46,13 @@ Status vocabulary: **Ready** means it can be started; **In progress** means a ve
 | Stage | Deliverable | Dependencies | Status |
 | --- | --- | --- | --- |
 | P0 | Buildable core foundation and first tested input rule | Existing repository | Complete |
-| P1 | Verified current-document and compilation integration contract | Standalone testbed independent of P0; target configuration for final verification | P1.3 complete; remaining integration needs target evidence |
+| P1 | Verified current-document and compilation integration contract | Standalone testbeds; target configuration for generated documents | P1.3 and static-input P1.4/P1.6 evidence complete; generated input needs target evidence |
 | P2 | Usable per-service Skill from one or more documents | P0; independent of the target producer | Complete |
 | P3 | Complete service updates with observable failure and preserved output | P2 | Complete |
-| P4 | Real per-compilation integration, including multiple services/modules | P1 verified, P2, P3 | Needs target evidence |
+| P4 | Real per-compilation integration, including multiple services/modules | P1 verified, P2, P3 | In progress; static authoritative inputs verified |
 | P5 | End-to-end/frontend acceptance and minimal usage instructions | P4 | Pending |
 
-P0, P2, and P3 are complete. Next establish P1's target service/module/document producer and exact compile entry points, then implement P4 against that evidence. Do not call fixture-only generation or publication a working production compile integration.
+P0, P2, and P3 are complete, and the static-input Maven route is usable. Next establish a target generated-document producer/readiness contract and verify it before closing P1/P4. Do not present static testbed evidence as proof that runtime springdoc output is current during production compilation.
 
 ### P0 — Establish The Build And First Red-To-Green Slice
 
@@ -76,9 +77,9 @@ Exit evidence: runnable `mvn test`, nonzero test count, the first behavior's obs
   - Freeze the passing JSON set with exact producer versions, capture command, source digests, and expected operation/schema counts for ordinary offline core tests. These snapshots now drive the completed P2 service Skill tests.
   - Official springdoc Maven export uses a running application and the integration-test phase (`mvn verify` in its example). This fixture path is not proof of `mvn compile` coverage; ordinary `mvn package` does not reach integration-test under the default lifecycle. Verify exact commands rather than call all three entry points equivalent.
   - A single multi-package application proves multi-group input, not independent microservices or multi-module reactor ordering. Add a second minimal service/multi-module probe for P1.4/P4's isolation and ordering cases, without building a full microservice platform.
-- P1.4: Verify generation timing on ordinary compile and repeated no-change compile; then examine full, service-only, partial-module, and parallel entry points. Do not assume a parent aggregator runs after its children or that IDE compilation delegates to Maven.
+- P1.4 — **Static-input evidence complete (2026-09-10)**: ordinary/repeated compile, full/service-only/parallel reactor, and package traversal are verified with two independent service-owner modules. A service spanning a partial module build and IDE compilation remain target-specific gaps.
 - P1.5: Make document preparation fail while an old JSON still exists; prove the result is an update failure and business compilation can still proceed. Do not publish the old JSON as fresh.
-- P1.6: Record the selected lifecycle/producer contract and supported entry points in DECISIONS.md. Keep an unverified entry point explicitly unverified, and revise the approach if it cannot meet the required compile semantics.
+- P1.6 — **Static-input decision recorded (2026-09-10)**: authoritative local JSON is read by an owner-module goal bound to `compile`. Generated documents still require a positive same-build preparation signal and verified ordering.
 
 Exit evidence: repeatable command/configuration, observed preparation/generation ordering, current-input evidence, and the stale-input failure case. Final acceptance requires target configuration or a confirmed representative equivalent. A synthetic producer proves orchestration only; it does not prove the actual springdoc integration.
 
@@ -106,12 +107,12 @@ Exit evidence: root tests pass 39 cases. The account/business fixtures produce o
 
 Exit evidence complete: targeted failure-injection tests and whole-tree comparisons prove the old service tree remains complete/unchanged on ordinary failure, deleted files/groups disappear on success, catastrophic restore failure retains a recovery backup, and unrelated service/manual outputs remain untouched. These tests do not yet prove Maven's exit behavior; P4 does.
 
-### P4 — Integrate The Complete Update Into Compilation
+### P4 — Integrate The Complete Update Into Compilation (In Progress)
 
-- P4.1: Finish the thin plugin using the verified P1 contract and P2/P3 implementation. Parse Skill configuration, prepare all required documents, generate, and replace within the Skill failure boundary.
-- P4.2: Add real build tests for the entry-point matrix below; plugin inheritance must not cause multiple modules to overwrite one service output.
-- P4.3: Exercise document/configuration/conversion/write/timeout errors through the real build entry point. Emit service/document-specific warnings, preserve old output if present, and keep otherwise valid business builds successful.
-- P4.4: Deliberately introduce a business compilation error and prove it still fails the build. Do not use blanket shell exit-code suppression.
+- P4.1: **Static local inputs complete.** The thin plugin parses service/Skill/output/timeout/document configuration, reads all required documents inside the failure boundary, and calls P2/P3. Generated document preparation remains open.
+- P4.2: **Fixture matrix substantially complete.** Real builds cover full, service-only, repeated, parallel, and package entry points with one explicit owner per service and no inherited execution. Partial builds for a service spanning modules remain open.
+- P4.3: **Static-input failure slice complete.** Real builds cover invalid/missing documents, invalid configuration and blocked output; warnings are service-specific, prior output is unchanged, and another service proceeds. P3 covers timeout and move-level injection; a real generated-document preparation timeout remains open.
+- P4.4: **Complete.** An opt-in module with invalid Java proves the normal compiler failure remains nonzero without shell exit suppression.
 
 | Scenario | Required observation |
 | --- | --- |
@@ -169,11 +170,11 @@ Distribution visibility, storage, gateway deployment, and a pinned Spring Boot t
 
 ## Known Gaps
 
-P0, P2, and P3 are complete. P1/P4 production integration remains open. The core still intentionally does not perform full OpenAPI schema validation, external reference access, source freshness checks, or build-lifecycle coordination.
+P0, P2, and P3 are complete; P4's static-authoritative Maven path is implemented and verified. Generated-document production/freshness, a service spanning partial modules, IDE invocation, final target output/retention, and P5 discovery remain open. Core still intentionally does not perform full OpenAPI schema validation or external reference access.
 
 ## Last Updated
 
-2026-09-09.
+2026-09-10.
 
 ## 2026-09-09 - Swagger UI Follow-up Completed
 
@@ -216,3 +217,11 @@ P0, P2, and P3 are complete. P1/P4 production integration remains open. The core
 - `ServiceSkillUpdater` publishes only after in-memory and staged validation. It locks by final Skill output, moves a valid prior tree to a unique backup, restores it on publication failure, and retains the complete backup if restoration itself cannot finish. It never clears the shared parent.
 - Last-attempt status is atomically replaced under `.smartdoc/status/<serviceId>.json`; locks, staging attempts, and backups remain outside the Skill. Status failure is observable and does not roll back a successfully validated Skill.
 - P3 proves the reusable filesystem update boundary only. It does not prove document freshness, Maven lifecycle placement, plugin warning/exit behavior, multi-module generation ownership, final output placement, or consuming-project discovery; those remain P1/P4/P5 gates.
+
+## 2026-09-10 - P4 Static-Document Maven Integration Slice Complete
+
+- Red: three `GenerateSkillMojoTest` cases initially produced two failures and one error with the 54 core tests still green. The empty Mojo did not publish, warn, or preserve an existing tree because it performed no work. The implementation then passed all 57 root tests.
+- `smartdoc-agent-maven-plugin` is now a root reactor module. Its `generate-skill` goal defaults to `compile`, declares thread safety, accepts one complete document list, invokes P2/P3, logs SUCCESS as info, and converts all Skill-side failures to warnings.
+- The standalone `testbeds/maven-plugin-integration/verify.ps1` ran successfully with Maven 3.9.16 and JDK 17.0.19. It installs the current snapshot, then verifies clean/ordinary/repeated compile, package traversal, targeted service compile, `-T 2` parallel services, one update per participating service, changed/deleted operation replacement, invalid/missing input with exact old-tree retention, first-run failure, invalid configuration, blocked output, peer-service continuation, and an intentional nonzero Java compilation failure.
+- Testbed inputs under `src/main/openapi` are authoritative static JSON. Reading them on each invocation establishes currency for that input model. This does not establish freshness for the runtime springdoc producer: target integration must provide a positive preparation-success signal in the same build and prove its order before P1/P4 can be closed.
+- Maven Plugin API 3.9.9 and Plugin Tools 3.15.2 follow the current official Java plugin guide checked 2026-09-10: [plugin development](https://maven.apache.org/guides/plugin/guide-java-plugin-development.html), [Plugin Tools 3.15.2](https://maven.apache.org/plugin-tools/maven-plugin-plugin/summary.html).

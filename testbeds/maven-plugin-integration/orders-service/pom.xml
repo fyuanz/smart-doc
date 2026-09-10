@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.smartdoc.integration</groupId>
+        <artifactId>maven-plugin-integration</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+    <artifactId>orders-service</artifactId>
+    <properties>
+        <orders.service.id>orders</orders.service.id>
+        <orders.account.path>${project.basedir}/src/main/openapi/account.json</orders.account.path>
+    </properties>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>com.smartdoc.agent</groupId>
+                <artifactId>smartdoc-agent-maven-plugin</artifactId>
+                <version>${smartdoc.plugin.version}</version>
+                <inherited>false</inherited>
+                <executions>
+                    <execution>
+                        <id>update-orders-skill</id>
+                        <phase>compile</phase>
+                        <goals><goal>generate-skill</goal></goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <serviceId>${orders.service.id}</serviceId>
+                    <skillName>orders-api</skillName>
+                    <outputDirectory>${smartdoc.output}</outputDirectory>
+                    <timeoutSeconds>10</timeoutSeconds>
+                    <documents>
+                        <document>
+                            <id>account</id>
+                            <path>${orders.account.path}</path>
+                        </document>
+                        <document>
+                            <id>business</id>
+                            <path>${project.basedir}/src/main/openapi/business.json</path>
+                        </document>
+                    </documents>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

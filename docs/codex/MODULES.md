@@ -4,17 +4,18 @@
 
 | Module | Responsibility | Status |
 | --- | --- | --- |
-| Parent project | Java 17/Maven dependency management and module aggregation | Buildable; root tests execute |
+| Parent project | Java 17/Maven dependency management and module aggregation | Buildable; core and plugin tests execute |
 | `smartdoc-agent-core` | OpenAPI-to-Skill conversion, complete-tree validation, and safe service publication | P0, P2, and P3 complete; 54 total tests |
-| `smartdoc-agent-maven-plugin` | Compilation trigger, current-document coordination, and non-blocking result reporting | Proposed, not implemented |
+| `smartdoc-agent-maven-plugin` | Compile-phase trigger, local document loading, and non-blocking result reporting | Implemented; 3 goal tests plus real static-input reactor verification |
 | AI project docs | Persistent scope, context, and implementation guidance | Exists; refreshed for v3.4 |
 | `testbeds/springdoc-multi-package` | Standalone annotated sample and validated two-document fixture export | Implemented; five tests pass, snapshots frozen |
+| `testbeds/maven-plugin-integration` | Standalone static-document multi-service Maven lifecycle verification | Implemented; scripted matrix passes |
 
 ## Parent Project
 
 Coordinates: `com.smartdoc.agent:smart-doc-agent:1.0.0-SNAPSHOT`.
 
-The parent describes OpenAPI-to-Skill conversion. Core uses existing managed Jackson 2.16.1 and JUnit 5.10.2, compiler 3.13.0 and Surefire 3.2.5. No legacy IR is restored. Add a plugin module only with its first tested slice.
+The parent describes OpenAPI-to-Skill conversion and aggregates core plus `smartdoc-agent-maven-plugin`. Core uses managed Jackson 2.16.1 and JUnit 5.10.2, compiler 3.13.0 and Surefire 3.2.5. The plugin uses Maven Plugin API 3.9.9 and Maven Plugin Tools 3.15.2. No legacy IR is restored.
 
 ## Core
 
@@ -43,22 +44,24 @@ Dependency boundary:
 - Introduce only the internal types needed by tests and rendering, not a speculative generic model or schema platform.
 - No ZIP packaging, package identity system, artifact server, CLI framework, retrieval, chat, or installation management.
 
-## Compilation Integration (Proposed Maven Plugin)
+## Compilation Integration (Fixture-Verified Maven Plugin)
 
-Target responsibilities:
+`GenerateSkillMojo` exposes `generate-skill`, defaults to `compile`, and is declared thread-safe. Configuration supplies one `serviceId`, one `skillName`, an output parent, a positive timeout, and one or more `{id, path}` documents. The Mojo snapshots the configuration, reads all required files inside the P3 generation boundary, invokes `SkillGenerator`, and logs SUCCESS as info or every update failure as a service-specific warning. It deliberately does not throw for configuration, document, conversion, timeout, locking, or publication failures.
 
-- Execute once per participating service per configured compilation, including repeated no-change compilation and builds that traverse compilation; avoid duplicate module-inherited generation.
-- Coordinate the actual current-document producer and the converter in a verified order.
+The standalone `testbeds/maven-plugin-integration/` reactor configures the goal explicitly in each service-owner module with `<inherited>false>`. Its verifier proves first/repeated compile, changed/deleted API content, package traversal, targeted service compilation, two-thread reactor execution, exactly one update per participating service, invalid and absent documents, first-run failure, blocked output, invalid configuration, whole-tree retention, unaffected peer-service updates, and a normal nonzero build result for invalid Java.
+
+Remaining target responsibilities:
+
+- Coordinate an actual generated-document producer and the converter in a verified order. Static authoritative local files are already read on every tested invocation.
 - Detect producer failure even when an old document remains on disk; never report old-input fallback as successful synchronization.
-- Isolate Skill configuration/preparation/conversion/write failures, enforce bounded execution, and emit actionable warnings without failing business compilation.
-- Call the P3 updater for staged replacement, recovery, output locking, bounded generation, and external status; report its result without changing the business build outcome.
+- Define and verify a preparation-success/freshness signal when documents are generated; an old output file alone remains insufficient.
 - Coordinate all required documents for one service before replacement. Any required document failure preserves the whole previous service Skill; other services update independently.
 - Scope output, staging, mutual exclusion, and status by service. Reject colliding service outputs without overwriting or clearing their shared parent.
 - Establish a service generation owner and verify full/partial/parallel build entry points. Partial builds with incomplete required input must diagnose the missed update; do not assume parent aggregator execution proves child readiness.
 
 Core errors remain observable; only the integration layer decides the non-blocking build behavior. Existing business build failures must remain failures. Host process failure or inability to load the plugin is not an exception a running generator can intercept.
 
-The current-document provider, concrete lifecycle binding, IDE coverage, final production output location, and plugin-to-core wiring are not implemented or verified. Do not make a default runtime-service dependency from these unknowns.
+The plugin-to-core wiring and Maven `compile` binding are verified for authoritative static documents. The generated-document provider, its readiness signal and order, IDE coverage, partial builds of a service spanning modules, final production output location, and target-specific retention across `clean` remain open. Do not make a default runtime-service dependency from these unknowns.
 
 ## Deferred Modules And Contracts
 

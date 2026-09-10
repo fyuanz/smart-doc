@@ -15,15 +15,19 @@
 |       |-- TASKS.md
 |       `-- DECISIONS.md
 |-- testbeds/
-|   `-- springdoc-multi-package/
-|       |-- pom.xml           # standalone Spring Boot parent
-|       |-- README.md
-|       |-- refresh-fixtures.ps1
-|       |-- fixtures/         # account/business JSON and metadata
-|       `-- src/              # sample application and contract/runtime tests
+|   |-- springdoc-multi-package/
+|   |   |-- pom.xml           # standalone Spring Boot parent
+|   |   |-- README.md
+|   |   |-- refresh-fixtures.ps1
+|   |   |-- fixtures/         # account/business JSON and metadata
+|   |   `-- src/              # sample application and contract/runtime tests
+|   `-- maven-plugin-integration/ # standalone static-document multi-service reactor and verifier
 |-- smartdoc-agent-core/
 |   |-- pom.xml
 |   `-- src/                # input validation, Skill generation, safe publication and focused tests
+|-- smartdoc-agent-maven-plugin/
+|   |-- pom.xml
+|   `-- src/                # compile-phase goal and focused tests
 `-- pom.xml
 ```
 
@@ -33,20 +37,20 @@
 | --- | --- |
 | `AGENTS.md` | First-read, test-first development, and documentation rules |
 | `docs/smartdoc-agent-design.md` | v3.4 scope, service/document boundaries, compile updates, and acceptance |
-| `pom.xml` | Java 17 Maven parent; aggregates the new core module |
+| `pom.xml` | Java 17 Maven parent; aggregates core and Maven plugin modules |
 | `docs/codex/DECISIONS.md` | Historical and current scope decisions |
 
-P0 rebuilt the core POM and exact-version input boundary. P2 adds `SkillGenerator` and `DocumentReferences`; P3 adds `GeneratedSkillValidator` and `ServiceSkillUpdater`, with separate fixture, contract, reference, limit, publication, failure-injection and concurrency tests under `src/test/java`. Legacy IR remains deleted.
+P0 rebuilt the core POM and exact-version input boundary. P2 adds `SkillGenerator` and `DocumentReferences`; P3 adds `GeneratedSkillValidator` and `ServiceSkillUpdater`. The P4 slice adds `smartdoc-agent-maven-plugin` to the root reactor and a standalone Maven lifecycle testbed. Legacy IR remains deleted.
 
 ## Implementation Locations
 
-Core paths now exist; the Maven plugin remains proposed:
+Core and the thin Maven entry point now exist:
 
 - `smartdoc-agent-core/src/main/java/com/smartdoc/agent/core/`: OpenApiInput.java (version/JSON boundary), SkillGenerator.java (service assembly), DocumentReferences.java (local graph, contract rendering and links), GeneratedSkillValidator.java (complete-tree checks), and ServiceSkillUpdater.java (bounded generation, locking, staged replacement, recovery, and external status).
 - Trusted Skill template currently resides in SkillGenerator.java; no resources directory is needed.
 - `smartdoc-agent-core/src/test/`: sanitized OpenAPI fixture, small boundary inputs, and meaningful semantic tests.
-- `smartdoc-agent-maven-plugin/`: proposed thin compile integration and document preparation coordination that will call the P2/P3 core boundary and translate update results to non-blocking build warnings.
-- Plugin integration tests: full, single-service, partial-module, repeated, and parallel compilation, document readiness, and per-service non-blocking generation failures; choose test paths with the first implementation.
+- `smartdoc-agent-maven-plugin/src/main/java/com/smartdoc/agent/maven/`: `GenerateSkillMojo` and its `DocumentSource` configuration bean. The Mojo reads required local files and translates P3 results into Maven info/warning output.
+- `testbeds/maven-plugin-integration/`: two valid service-owner modules, an opt-in broken Java module, static OpenAPI inputs, POM examples, and `verify.ps1` for real lifecycle assertions.
 
 Do not add CLI, server, package repository, generic ingestion, or distribution modules. The implemented standalone fixture at `testbeds/springdoc-multi-package/` has `user`, `order`, `file`, and `common` packages and explicit `account`/`business` groups. It is outside the root reactor and must not become a production dependency. Future core tests consume its frozen sanitized snapshots rather than start it on every run.
 
@@ -54,6 +58,7 @@ Do not add CLI, server, package repository, generic ingestion, or distribution m
 
 - Maven `**/target/` output is not source.
 - `smartdoc-agent-core/target/smartdoc/springdoc-multi-package-api/` is the verified test-generated Skill. The P3 publisher is verified in temporary directories; no production build invokes it yet.
+- `testbeds/maven-plugin-integration/target/smartdoc/` is ignored verification output for the Maven goal; it is recreated by the verifier and is not a production destination.
 - For an output parent, the final Skill is `<skillName>/`; updater state is outside it under `.smartdoc/locks/<skillName>.lock`, `.smartdoc/staging/`, `.smartdoc/backups/`, and `.smartdoc/status/<serviceId>.json`.
 - Each service owns a unique Skill output, staging attempt, lock, and status location. Generated references use `references/documents/<documentId>/operations/`, `schemas/`, and optional `tags/`; single-document services also use a document namespace.
 - Preserve safe local ignore rules for IDE files, secrets, logs, and temporary files.
