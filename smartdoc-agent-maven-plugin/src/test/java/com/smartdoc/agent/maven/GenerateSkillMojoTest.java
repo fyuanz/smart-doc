@@ -1,6 +1,9 @@
 package com.smartdoc.agent.maven;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.maven.execution.DefaultMavenExecutionRequest;
+import org.apache.maven.execution.DefaultMavenExecutionResult;
+import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.logging.Log;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -8,7 +11,10 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.TreeMap;
 
@@ -68,6 +74,45 @@ class GenerateSkillMojoTest {
         assertTrue(configLog.warnings.stream().anyMatch(message -> message.contains("CONFIG")));
     }
 
+    @Test
+    void currentBuildModeRejectsOldDocumentsAndPreservesThePublishedSkill() throws Exception {
+        Path account = write("account.json", document("/users", "listUsers"));
+        GenerateSkillMojo initial = mojo(new RecordingLog(), List.of(source("account", account)));
+        initial.execute();
+        Path skill = temporary.resolve("output/orders-api");
+        var before = tree(skill);
+        Instant buildStartedAt = Instant.now();
+        Files.setLastModifiedTime(account, FileTime.from(buildStartedAt.minusSeconds(5)));
+        var log = new RecordingLog();
+        GenerateSkillMojo stale = mojo(log, List.of(source("account", account)));
+        stale.requireCurrentBuildDocuments = true;
+        stale.session = session(buildStartedAt);
+
+        assertDoesNotThrow(stale::execute);
+
+        assertEquals(before, tree(skill));
+        assertTrue(log.warnings.stream().anyMatch(message -> message.contains("account")
+                && message.contains("current Maven build")));
+        assertEquals("FAILED", mapper.readTree(Files.readString(
+                temporary.resolve("output/.smartdoc/status/orders.json"))).path("outcome").asText());
+    }
+
+    @Test
+    void currentBuildModeAcceptsARewrittenDocumentEvenWhenItsContentIsUnchanged() throws Exception {
+        Path account = write("account.json", document("/users", "listUsers"));
+        Instant buildStartedAt = Instant.now().minusSeconds(1);
+        Files.setLastModifiedTime(account, FileTime.from(buildStartedAt.plusMillis(100)));
+        var log = new RecordingLog();
+        GenerateSkillMojo mojo = mojo(log, List.of(source("account", account)));
+        mojo.requireCurrentBuildDocuments = true;
+        mojo.session = session(buildStartedAt);
+
+        mojo.execute();
+
+        assertTrue(Files.isRegularFile(temporary.resolve("output/orders-api/SKILL.md")));
+        assertTrue(log.infos.stream().anyMatch(message -> message.contains("SUCCESS")));
+    }
+
     private GenerateSkillMojo mojo(RecordingLog log, List<DocumentSource> documents) {
         var mojo = new GenerateSkillMojo();
         mojo.setLog(log);
@@ -77,6 +122,13 @@ class GenerateSkillMojoTest {
         mojo.timeoutSeconds = 2;
         mojo.documents = documents;
         return mojo;
+    }
+
+    @SuppressWarnings("deprecation")
+    private MavenSession session(Instant startedAt) {
+        var request = new DefaultMavenExecutionRequest();
+        request.setStartTime(Date.from(startedAt));
+        return new MavenSession(null, null, request, new DefaultMavenExecutionResult());
     }
 
     private DocumentSource source(String id, Path path) {

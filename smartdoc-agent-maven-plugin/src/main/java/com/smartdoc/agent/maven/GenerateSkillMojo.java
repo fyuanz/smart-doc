@@ -2,6 +2,7 @@ package com.smartdoc.agent.maven;
 
 import com.smartdoc.agent.core.ServiceSkillUpdater;
 import com.smartdoc.agent.core.SkillGenerator;
+import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -9,7 +10,9 @@ import org.apache.maven.plugins.annotations.Parameter;
 
 import java.io.File;
 import java.nio.file.Files;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -29,6 +32,12 @@ public final class GenerateSkillMojo extends AbstractMojo {
     @Parameter(defaultValue = "30")
     long timeoutSeconds;
 
+    @Parameter(defaultValue = "false")
+    boolean requireCurrentBuildDocuments;
+
+    @Parameter(defaultValue = "${session}", readonly = true)
+    MavenSession session;
+
     @Parameter
     List<DocumentSource> documents;
 
@@ -38,9 +47,11 @@ public final class GenerateSkillMojo extends AbstractMojo {
         try {
             validateConfiguration();
             List<DocumentSource> configuredDocuments = List.copyOf(documents);
+            Instant currentBuildStartedAt = currentBuildStartedAt();
             var result = new ServiceSkillUpdater().update(serviceId, skillName, outputDirectory.toPath(),
                     Duration.ofSeconds(timeoutSeconds),
-                    () -> new SkillGenerator().generate(serviceId, skillName, readDocuments(configuredDocuments)));
+                    () -> new SkillGenerator().generate(serviceId, skillName,
+                            readDocuments(configuredDocuments, currentBuildStartedAt)));
             String summary = "SmartDoc [" + serviceId + "] " + result.outcome() + ": " + result.message()
                     + "; Skill=" + result.skillDirectory();
             if (result.outcome() == ServiceSkillUpdater.Outcome.SUCCESS) getLog().info(summary);
@@ -63,7 +74,15 @@ public final class GenerateSkillMojo extends AbstractMojo {
             throw new IllegalArgumentException("CONFIG: at least one document is required");
     }
 
-    private Map<String, byte[]> readDocuments(List<DocumentSource> configuredDocuments) throws Exception {
+    private Instant currentBuildStartedAt() {
+        if (!requireCurrentBuildDocuments) return null;
+        if (session == null || session.getRequest() == null || session.getRequest().getStartTime() == null)
+            throw new IllegalArgumentException("CONFIG: current Maven session start time is unavailable");
+        return session.getRequest().getStartTime().toInstant();
+    }
+
+    private Map<String, byte[]> readDocuments(List<DocumentSource> configuredDocuments,
+                                               Instant currentBuildStartedAt) throws Exception {
         var result = new TreeMap<String, byte[]>();
         for (DocumentSource document : configuredDocuments) {
             if (document == null || document.getId() == null || document.getId().isBlank())
@@ -75,7 +94,16 @@ public final class GenerateSkillMojo extends AbstractMojo {
             var path = document.getPath().toPath().toAbsolutePath().normalize();
             if (!Files.isRegularFile(path))
                 throw new IllegalArgumentException(document.getId() + ": INPUT: required document is unavailable at " + path);
-            result.put(document.getId(), Files.readAllBytes(path));
+            BasicFileAttributes before = Files.readAttributes(path, BasicFileAttributes.class);
+            if (currentBuildStartedAt != null
+                    && before.lastModifiedTime().toInstant().isBefore(currentBuildStartedAt))
+                throw new IllegalArgumentException(document.getId()
+                        + ": INPUT: document was not prepared during the current Maven build at " + path);
+            byte[] bytes = Files.readAllBytes(path);
+            BasicFileAttributes after = Files.readAttributes(path, BasicFileAttributes.class);
+            if (before.size() != after.size() || !before.lastModifiedTime().equals(after.lastModifiedTime()))
+                throw new IllegalArgumentException(document.getId() + ": INPUT: document changed while being read at " + path);
+            result.put(document.getId(), bytes);
         }
         return result;
     }

@@ -10,9 +10,12 @@ Bearer 安全定义用于测试文档元数据，服务没有实现认证。
 ```powershell
 mvn -f testbeds/springdoc-multi-package/pom.xml test
 mvn -f testbeds/springdoc-multi-package/pom.xml spring-boot:run
+powershell -NoProfile -File testbeds/springdoc-multi-package/verify-generated-integration.ps1
 ```
 
 手动启动默认仅监听 `127.0.0.1:18080`，用 Ctrl+C 停止。独立 POM 不依赖根工程或 core。
+生成接入验证脚本会先把当前 SmartDoc 插件安装到本地 Maven 仓库，再为 HTTP/JMX 选择空闲端口；它不会
+占用或停止手动运行的 `18080` 服务。
 
 启动后打开 [Swagger UI](http://127.0.0.1:18080/swagger-ui.html)。通过页面顶部的
 `Select a definition` 切换 `account`（用户接口）和 `business`（订单、文件接口），
@@ -43,5 +46,10 @@ powershell -NoProfile -File testbeds/springdoc-multi-package/refresh-fixtures.ps
 `fixtures/metadata.json` 记录版本、来源端点、SHA-256、操作/Schema 数量和生产源码摘要。
 普通 `test` 只更新 `target`，不会修改冻结输入。刷新后应一并审查两份 JSON 和 metadata 的差异。
 
-本服务完成 P1.3 的真实文档样例。`compile` 不启动服务或导出文档，也尚未生成 Skill；
-生产编译接入、失败隔离、多服务和多模块验证仍属于后续任务。
+`verify-generated-integration.ps1` 验证另一条独立链路：`pre-integration-test` 启动已编译应用，
+springdoc Maven Plugin 1.5 在 `integration-test` 分别抓取两组 JSON，`post-integration-test` 停止应用，
+SmartDoc 在 `verify` 检查文档属于本次 Maven 会话后发布 Skill。脚本随后让抓取连接失败，确认旧 JSON
+不会被当成本次结果，原 Skill 保持不变且 Maven 构建成功。
+
+这条运行时路径要求 `mvn verify`；普通 `compile` 和 `package` 不会到达集成测试阶段。Spring Boot
+启动目标本身的失败仍会终止 Maven 构建，因此该样例是可复现的接入证据，不是默认生产配置。
