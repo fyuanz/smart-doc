@@ -3,7 +3,7 @@ $ErrorActionPreference = "Stop"
 $testbedRoot = (Resolve-Path $PSScriptRoot).Path
 $repositoryRoot = (Resolve-Path (Join-Path $testbedRoot "../..")).Path
 $generatedRoot = Join-Path $testbedRoot "target/generated-openapi"
-$outputRoot = Join-Path $testbedRoot "target/smartdoc"
+$outputRoot = Join-Path $testbedRoot "target/generated-resources/smartdoc"
 $skillRoot = Join-Path $outputRoot "springdoc-multi-package-api"
 
 function Invoke-CheckedMaven([string] $workingDirectory, [string[]] $arguments) {

@@ -37,7 +37,7 @@
 | Path | Purpose |
 | --- | --- |
 | `AGENTS.md` | First-read, test-first development, and documentation rules |
-| `docs/smartdoc-agent-design.md` | v3.4 scope, service/document boundaries, compile updates, and acceptance |
+| `docs/smartdoc-agent-design.md` | v3.5 scope, service/document boundaries, Maven updates, and acceptance |
 | `pom.xml` | Java 17 Maven parent; aggregates core and Maven plugin modules |
 | `docs/codex/DECISIONS.md` | Historical and current scope decisions |
 
@@ -50,7 +50,7 @@ Core and the thin Maven entry point now exist:
 - `smartdoc-agent-core/src/main/java/com/smartdoc/agent/core/`: OpenApiInput.java (version/JSON boundary), SkillGenerator.java (service assembly), DocumentReferences.java (local graph, contract rendering and links), GeneratedSkillValidator.java (complete-tree checks), and ServiceSkillUpdater.java (bounded generation, locking, staged replacement, recovery, and external status).
 - Trusted Skill template currently resides in SkillGenerator.java; no resources directory is needed.
 - `smartdoc-agent-core/src/test/`: sanitized OpenAPI fixture, small boundary inputs, and meaningful semantic tests.
-- `smartdoc-agent-maven-plugin/src/main/java/com/smartdoc/agent/maven/`: `GenerateSkillMojo` and its `DocumentSource` configuration bean. The Mojo reads required local files, can reject generated files older than the Maven session, and translates P3 results into Maven info/warning output.
+- `smartdoc-agent-maven-plugin/src/main/java/com/smartdoc/agent/maven/`: `GenerateSkillMojo` and its explicit-path `DocumentSource` configuration bean. The Mojo normally discovers top-level JSON files in one configured producer directory, retains explicit file configuration as a fallback, can reject files older than the Maven session, and translates P3 results into Maven info/warning output.
 - `testbeds/maven-plugin-integration/`: two valid service-owner modules, an opt-in broken Java module, static OpenAPI inputs, POM examples, and `verify.ps1` for real lifecycle assertions.
 
 Do not add CLI, server, package repository, generic ingestion, or distribution modules. The implemented standalone fixture at `testbeds/springdoc-multi-package/` has `user`, `order`, `file`, and `common` packages and explicit `account`/`business` groups. It is outside the root reactor and must not become a production dependency. Future core tests consume its frozen sanitized snapshots rather than start it on every run.
@@ -59,8 +59,8 @@ Do not add CLI, server, package repository, generic ingestion, or distribution m
 
 - Maven `**/target/` output is not source.
 - `smartdoc-agent-core/target/smartdoc/springdoc-multi-package-api/` is the verified test-generated Skill. The P3 publisher is verified in temporary directories; no production build invokes it yet.
-- `testbeds/maven-plugin-integration/target/smartdoc/` is ignored verification output for the Maven goal; it is recreated by the verifier and is not a production destination.
-- `testbeds/springdoc-multi-package/target/generated-openapi/` and `target/smartdoc/` are ignored runtime-integration outputs recreated by the generated-document verifier.
+- `testbeds/maven-plugin-integration/target/generated-resources/smartdoc/` is ignored verification output for the Maven goal; it is recreated by the verifier.
+- `testbeds/springdoc-multi-package/target/generated-openapi/` and `target/generated-resources/smartdoc/` are ignored runtime-integration outputs recreated by the generated-document verifier.
 - For an output parent, the final Skill is `<skillName>/`; updater state is outside it under `.smartdoc/locks/<skillName>.lock`, `.smartdoc/staging/`, `.smartdoc/backups/`, and `.smartdoc/status/<serviceId>.json`.
 - Each service owns a unique Skill output, staging attempt, lock, and status location. Generated references use `references/documents/<documentId>/operations/`, `schemas/`, and optional `tags/`; single-document services also use a document namespace.
 - Preserve safe local ignore rules for IDE files, secrets, logs, and temporary files.
@@ -72,7 +72,7 @@ Do not add CLI, server, package repository, generic ingestion, or distribution m
 - Output replacement must only affect a validated generator-owned directory, never a source root or a directory with unrelated manual content.
 - Do not treat a local test snapshot as proof of current-code freshness in production.
 - Do not treat the testbed's `verify`-phase runtime export as ordinary `compile` coverage; application-start failure remains build-fatal in that sample.
-- Do not claim Maven integration covers independent IDE compilation without verification.
+- Independent IDE compilation is outside the accepted workflow; IDE builds are covered only when delegated to Maven.
 - Stable links and filenames matter; a ZIP identity/verification platform is outside scope.
 - Never replace a shared parent containing multiple service outputs. Do not infer service boundaries from Java packages or Maven directory names.
 

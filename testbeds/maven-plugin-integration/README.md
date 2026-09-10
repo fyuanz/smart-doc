@@ -2,7 +2,7 @@
 
 This standalone Java 17 reactor verifies the SmartDoc Maven goal against real Maven lifecycle invocations.
 `orders-service` owns a two-document Skill and `billing-service` owns a one-document Skill. Both publish below
-the reactor's `target/smartdoc/` parent. The plugin execution is declared only in each service owner module and
+the reactor's `target/generated-resources/smartdoc/` parent. The plugin execution is declared only in each service owner module and
 uses `<inherited>false>`.
 
 The inputs under each module's `src/main/openapi/` are authoritative static OpenAPI sources for this testbed.

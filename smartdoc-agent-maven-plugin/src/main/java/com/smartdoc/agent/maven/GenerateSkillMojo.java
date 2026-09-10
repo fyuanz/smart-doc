@@ -4,7 +4,6 @@ import com.smartdoc.agent.core.ServiceSkillUpdater;
 import com.smartdoc.agent.core.SkillGenerator;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.AbstractMojo;
-import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 
@@ -13,12 +12,14 @@ import java.nio.file.Files;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 
 /** Generates and safely publishes one service Skill from configured local documents. */
-@Mojo(name = "generate-skill", defaultPhase = LifecyclePhase.COMPILE, threadSafe = true)
+@Mojo(name = "generate-skill", threadSafe = true)
 public final class GenerateSkillMojo extends AbstractMojo {
     @Parameter
     String serviceId;
@@ -26,7 +27,7 @@ public final class GenerateSkillMojo extends AbstractMojo {
     @Parameter
     String skillName;
 
-    @Parameter(defaultValue = "${project.build.directory}/smartdoc")
+    @Parameter(defaultValue = "${project.build.directory}/generated-resources/smartdoc")
     File outputDirectory;
 
     @Parameter(defaultValue = "30")
@@ -41,12 +42,20 @@ public final class GenerateSkillMojo extends AbstractMojo {
     @Parameter
     List<DocumentSource> documents;
 
+    @Parameter
+    File documentsDirectory;
+
     @Override
     public void execute() {
         String service = serviceId == null || serviceId.isBlank() ? "<unconfigured>" : serviceId;
         try {
             validateConfiguration();
-            List<DocumentSource> configuredDocuments = List.copyOf(documents);
+            List<DocumentSource> configuredDocuments = resolveDocuments();
+            if (configuredDocuments.isEmpty()) {
+                getLog().info("SmartDoc [" + serviceId + "] SKIPPED: no OpenAPI JSON files found in "
+                        + documentsDirectory.toPath().toAbsolutePath().normalize());
+                return;
+            }
             Instant currentBuildStartedAt = currentBuildStartedAt();
             var result = new ServiceSkillUpdater().update(serviceId, skillName, outputDirectory.toPath(),
                     Duration.ofSeconds(timeoutSeconds),
@@ -70,8 +79,38 @@ public final class GenerateSkillMojo extends AbstractMojo {
         if (skillName == null || skillName.isBlank()) throw new IllegalArgumentException("CONFIG: skillName is required");
         if (outputDirectory == null) throw new IllegalArgumentException("CONFIG: outputDirectory is required");
         if (timeoutSeconds <= 0) throw new IllegalArgumentException("CONFIG: timeoutSeconds must be positive");
-        if (documents == null || documents.isEmpty())
-            throw new IllegalArgumentException("CONFIG: at least one document is required");
+        boolean hasDocuments = documents != null && !documents.isEmpty();
+        if (hasDocuments && documentsDirectory != null)
+            throw new IllegalArgumentException("CONFIG: configure documents or documentsDirectory, not both");
+        if (!hasDocuments && documentsDirectory == null)
+            throw new IllegalArgumentException("CONFIG: documents or documentsDirectory is required");
+    }
+
+    private List<DocumentSource> resolveDocuments() throws Exception {
+        if (documents != null && !documents.isEmpty()) return List.copyOf(documents);
+        var directory = documentsDirectory.toPath().toAbsolutePath().normalize();
+        if (!Files.exists(directory)) return List.of();
+        if (!Files.isDirectory(directory))
+            throw new IllegalArgumentException("CONFIG: documentsDirectory is not a directory: " + directory);
+        try (var paths = Files.list(directory)) {
+            return paths.filter(Files::isRegularFile)
+                    .filter(path -> path.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".json"))
+                    .sorted(Comparator.comparing(path -> path.getFileName().toString()))
+                    .map(this::discoveredDocument)
+                    .toList();
+        }
+    }
+
+    private DocumentSource discoveredDocument(java.nio.file.Path path) {
+        String name = path.getFileName().toString();
+        String id = name.substring(0, name.length() - ".json".length());
+        if (!id.matches("[a-z0-9]+(?:-[a-z0-9]+)*") || id.length() > 63)
+            throw new IllegalArgumentException("CONFIG: discovered JSON filename must be a safe lowercase document id: "
+                    + name);
+        var source = new DocumentSource();
+        source.setId(id);
+        source.setPath(path.toFile());
+        return source;
     }
 
     private Instant currentBuildStartedAt() {
@@ -93,7 +132,7 @@ public final class GenerateSkillMojo extends AbstractMojo {
                 throw new IllegalArgumentException(document.getId() + ": CONFIG: duplicate document id");
             var path = document.getPath().toPath().toAbsolutePath().normalize();
             if (!Files.isRegularFile(path))
-                throw new IllegalArgumentException(document.getId() + ": INPUT: required document is unavailable at " + path);
+                throw new IllegalArgumentException(document.getId() + ": INPUT: configured document is unavailable at " + path);
             BasicFileAttributes before = Files.readAttributes(path, BasicFileAttributes.class);
             if (currentBuildStartedAt != null
                     && before.lastModifiedTime().toInstant().isBefore(currentBuildStartedAt))

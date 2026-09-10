@@ -1,8 +1,8 @@
 # SmartDoc Agent Maven Plugin
 
 The `generate-skill` goal reads one complete set of local OpenAPI 3.1.0 JSON documents and publishes one
-service-owned Skill through the core updater. Its default phase is `compile`; configure the execution explicitly
-in the one module that owns generation for the service.
+service-owned Skill through the core updater. It has no default lifecycle phase: configure the execution explicitly
+after SpringDoc / NextDoc4j in the one module that owns generation for the service.
 
 ```xml
 <plugin>
@@ -13,30 +13,32 @@ in the one module that owns generation for the service.
   <executions>
     <execution>
       <id>update-orders-skill</id>
-      <phase>compile</phase>
+      <phase>verify</phase>
       <goals><goal>generate-skill</goal></goals>
     </execution>
   </executions>
   <configuration>
     <serviceId>orders</serviceId>
     <skillName>orders-api</skillName>
-    <outputDirectory>${project.build.directory}/smartdoc</outputDirectory>
+    <outputDirectory>${project.build.directory}/generated-resources/smartdoc</outputDirectory>
     <timeoutSeconds>30</timeoutSeconds>
-    <documents>
-      <document>
-        <id>account</id>
-        <path>${project.basedir}/src/main/openapi/account.json</path>
-      </document>
-      <document>
-        <id>business</id>
-        <path>${project.basedir}/src/main/openapi/business.json</path>
-      </document>
-    </documents>
+    <documentsDirectory>${project.build.directory}/generated-openapi</documentsDirectory>
   </configuration>
 </plugin>
 ```
 
-All configured documents are required. Configuration, read, conversion, timeout, locking, validation, and
+`documentsDirectory` discovers regular top-level `*.json` files in deterministic filename order. The filename stem
+becomes `documentId`, so names must use safe lowercase words separated by hyphens, such as `openapi.json` or
+`account-admin.json`. An absent or empty directory logs `SKIPPED` and produces nothing. Non-JSON files are ignored.
+Explicit `<documents>` entries remain available when paths and IDs cannot follow this convention; do not configure
+both modes.
+
+"Documents" means the OpenAPI JSON files/groups found in that directory or explicitly listed by the target project,
+not a second checklist of required operations or schemas. In directory mode, the files present define the service's
+current input set; content and groups absent from that set are not generated. All discovered files are frozen and
+validated together. Explicit entries use stricter semantics: every listed path must exist, which is useful when a
+fixed group set must never be published partially.
+Configuration, read, conversion, timeout, locking, validation, and
 publication failures are logged as service-specific warnings; they do not throw a Maven build failure. Once the
 service, Skill, and output configuration is valid, each update attempt also writes its outcome to the status file.
 Ordinary Java compilation and other Maven failures keep their normal exit status. The output parent contains
@@ -55,9 +57,8 @@ Runtime springdoc export requires compiled application classes, so the verified 
 The testbed also shows that a springdoc HTTP capture failure can remain non-blocking; Spring Boot startup failure is
 still a normal failure of the Spring Boot Maven plugin.
 
-The default output is below `target`, so `clean` removes the previous Skill before compilation. Configure a
-controlled durable output parent outside build output when failed clean builds must retain the last successful
-Skill. Never point `outputDirectory` at a source root or a directory containing manual files.
+The default output parent is `${project.build.directory}/generated-resources/smartdoc`; `clean` removes it. Never
+point `outputDirectory` at a source root or a directory containing manual files.
 
 Run the standalone lifecycle verification from the repository root:
 

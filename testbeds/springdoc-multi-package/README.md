@@ -48,8 +48,10 @@ powershell -NoProfile -File testbeds/springdoc-multi-package/refresh-fixtures.ps
 
 `verify-generated-integration.ps1` 验证另一条独立链路：`pre-integration-test` 启动已编译应用，
 springdoc Maven Plugin 1.5 在 `integration-test` 分别抓取两组 JSON，`post-integration-test` 停止应用，
-SmartDoc 在 `verify` 检查文档属于本次 Maven 会话后发布 Skill。脚本随后让抓取连接失败，确认旧 JSON
+SmartDoc 在 `verify` 扫描 `target/generated-openapi/`，检查发现的 JSON 属于本次 Maven 会话后发布 Skill。
+脚本随后让抓取连接失败，确认旧 JSON
 不会被当成本次结果，原 Skill 保持不变且 Maven 构建成功。
+Skill 输出位于 `target/generated-resources/smartdoc/`，执行 `clean` 后不会保留。
 
 这条运行时路径要求 `mvn verify`；普通 `compile` 和 `package` 不会到达集成测试阶段。Spring Boot
 启动目标本身的失败仍会终止 Maven 构建，因此该样例是可复现的接入证据，不是默认生产配置。

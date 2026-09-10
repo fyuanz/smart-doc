@@ -6,8 +6,8 @@
 | --- | --- | --- |
 | Parent project | Java 17/Maven dependency management and module aggregation | Buildable; core and plugin tests execute |
 | `smartdoc-agent-core` | OpenAPI-to-Skill conversion, complete-tree validation, and safe service publication | P0, P2, and P3 complete; 54 total tests |
-| `smartdoc-agent-maven-plugin` | Maven trigger, local document loading/current-build checks, and non-blocking result reporting | Implemented; 5 goal tests plus static and runtime-generated integration verification |
-| AI project docs | Persistent scope, context, and implementation guidance | Exists; refreshed for v3.4 |
+| `smartdoc-agent-maven-plugin` | Maven trigger, JSON directory discovery/local loading/current-build checks, and non-blocking result reporting | Implemented; 8 goal tests plus static and runtime-generated integration verification |
+| AI project docs | Persistent scope, context, and implementation guidance | Exists; refreshed for v3.5 |
 | `testbeds/springdoc-multi-package` | Standalone annotated sample, frozen fixtures, and runtime springdoc-to-Skill verification | Implemented; five service tests and generated-document verification pass |
 | `testbeds/maven-plugin-integration` | Standalone static-document multi-service Maven lifecycle verification | Implemented; scripted matrix passes |
 
@@ -46,23 +46,23 @@ Dependency boundary:
 
 ## Compilation Integration (Fixture-Verified Maven Plugin)
 
-`GenerateSkillMojo` exposes `generate-skill`, defaults to `compile`, and is declared thread-safe. Configuration supplies one `serviceId`, one `skillName`, an output parent, a positive timeout, and one or more `{id, path}` documents. The Mojo snapshots the configuration, reads all required files inside the P3 generation boundary, invokes `SkillGenerator`, and logs SUCCESS as info or every update failure as a service-specific warning. With `requireCurrentBuildDocuments`, each file must have been rewritten no earlier than the Maven session start and must not change while being read. It deliberately does not throw for configuration, document, freshness, conversion, timeout, locking, or publication failures.
+`GenerateSkillMojo` exposes the thread-safe `generate-skill` goal without a default lifecycle phase, so every target POM must place it after its producer. Configuration supplies one `serviceId`, one `skillName`, an output parent, a positive timeout, and normally one `documentsDirectory`; explicit `{id, path}` entries remain an alternative. Directory mode discovers regular top-level JSON files in stable filename order, derives IDs from safe lowercase filename stems, ignores other files, and logs SKIPPED when the directory is absent or empty. The Mojo snapshots all discovered files inside the P3 generation boundary, invokes `SkillGenerator`, and logs SUCCESS as info or every update failure as a service-specific warning. With `requireCurrentBuildDocuments`, each file must have been rewritten no earlier than the Maven session start and must not change while being read. It deliberately does not throw for configuration, document, freshness, conversion, timeout, locking, or publication failures.
 
 The standalone `testbeds/maven-plugin-integration/` reactor configures the goal explicitly in each service-owner module with `<inherited>false>`. Its verifier proves first/repeated compile, changed/deleted API content, package traversal, targeted service compilation, two-thread reactor execution, exactly one update per participating service, invalid and absent documents, first-run failure, blocked output, invalid configuration, whole-tree retention, unaffected peer-service updates, and a normal nonzero build result for invalid Java.
 
-The `springdoc-multi-package` verifier proves a separate generated-input route. Spring Boot starts the packaged test application at `pre-integration-test`; springdoc Maven Plugin 1.5 captures account and business at `integration-test`; Spring Boot stops at `post-integration-test`; SmartDoc runs once at `verify` with current-build checks. A deliberate capture failure leaves the prior JSON untouched, produces a SmartDoc FAILED status/warning, retains the exact prior Skill tree, and keeps Maven successful.
+The `springdoc-multi-package` verifier proves a separate generated-input route. Spring Boot starts the packaged test application at `pre-integration-test`; springdoc Maven Plugin 1.5 captures account and business at `integration-test`; Spring Boot stops at `post-integration-test`; SmartDoc scans the generated JSON directory once at `verify` with current-build checks. A deliberate capture failure leaves the prior JSON untouched, produces a SmartDoc FAILED status/warning, retains the exact prior Skill tree, and keeps Maven successful.
 
 Remaining target responsibilities:
 
-- Map the representative generated-document order to the actual target. Static authoritative files are verified at `compile`; runtime springdoc is verified at `verify` only.
+- Target projects explicitly map service, owner module, producer directory, and phase. Providers are restricted to SpringDoc / NextDoc4j; runtime SpringDoc is verified at `verify` only.
 - Decide how the production build handles application-start failure. The springdoc HTTP capture is non-blocking in the fixture, while Spring Boot's `start` goal still fails Maven before SmartDoc can isolate it.
-- Coordinate all required documents for one service before replacement. Any required document failure preserves the whole previous service Skill; other services update independently.
+- Treat every JSON discovered for one execution as the service's current atomic set. “Document” means an OpenAPI JSON file/group rather than an additional checklist of API facts; absent groups/content are not invented. Use explicit entries only when the target needs a fixed required group set.
 - Scope output, staging, mutual exclusion, and status by service. Reject colliding service outputs without overwriting or clearing their shared parent.
 - Establish a service generation owner and verify full/partial/parallel build entry points. Partial builds with incomplete required input must diagnose the missed update; do not assume parent aggregator execution proves child readiness.
 
 Core errors remain observable; only the integration layer decides the non-blocking build behavior. Existing business build failures must remain failures. Host process failure or inability to load the plugin is not an exception a running generator can intercept.
 
-The plugin-to-core wiring and Maven `compile` binding are verified for authoritative static documents. Runtime springdoc order and stale-input rejection are verified at `verify` in the standalone service. The production provider/entry point, application-start failure behavior, IDE coverage, partial builds of a service spanning modules, final output location, and target-specific retention across `clean` remain open. Do not make the testbed startup sequence a production default without resolving those choices.
+The plugin-to-core wiring and Maven `compile` binding are verified for fixture documents. Runtime SpringDoc order, directory discovery, and stale-input rejection are verified at `verify` in the standalone service. Production providers are restricted to SpringDoc / NextDoc4j, output defaults under `target/generated-resources/smartdoc`, and independent IDE compilation is out of scope. Target POMs still choose their owner module/phase and application-start failure behavior.
 
 ## Deferred Modules And Contracts
 

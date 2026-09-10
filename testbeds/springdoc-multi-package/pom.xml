@@ -110,19 +110,10 @@
                 <configuration>
                     <serviceId>springdoc-multi-package</serviceId>
                     <skillName>springdoc-multi-package-api</skillName>
-                    <outputDirectory>${project.build.directory}/smartdoc</outputDirectory>
+                    <outputDirectory>${project.build.directory}/generated-resources/smartdoc</outputDirectory>
                     <timeoutSeconds>30</timeoutSeconds>
                     <requireCurrentBuildDocuments>true</requireCurrentBuildDocuments>
-                    <documents>
-                        <document>
-                            <id>account</id>
-                            <path>${project.build.directory}/generated-openapi/account.json</path>
-                        </document>
-                        <document>
-                            <id>business</id>
-                            <path>${project.build.directory}/generated-openapi/business.json</path>
-                        </document>
-                    </documents>
+                    <documentsDirectory>${project.build.directory}/generated-openapi</documentsDirectory>
                 </configuration>
             </plugin>
             <plugin>

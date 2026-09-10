@@ -1,6 +1,6 @@
 # Decisions
 
-Current scope: product design v3.4.0, the compile-update decision, and the 2026-09-09 service/document decision below govern current work. Earlier decisions describe history; ZIP/download, CLI and package identity are deferred. The user-selected standalone Spring Boot fixture is now implemented; it is not a production dependency.
+Current scope: product design v3.5.0 and the latest generated-input Maven decision below govern current work. Earlier decisions describe history; ZIP/download, CLI and package identity are deferred. The user-selected standalone Spring Boot fixture is implemented; it is not a production dependency.
 
 ## 2026-09-09 - Remove The Project-Local Documentation Skill
 
@@ -650,3 +650,17 @@ Configure springdoc capture with `failOnError=false` in the fixture so an HTTP c
 Use dynamic loopback HTTP and JMX ports in automated verification so an unrelated local process is never stopped or reused. The fixture's documented `18080` remains only the manual-run default.
 
 Evidence: the two new freshness tests failed before implementation and bring the passing root suite to 59. The generated-integration verifier first failed because the runtime documents and Skill did not exist, then passed both a clean successful export and a no-clean failed-capture case with exact tree/timestamp checks. Official references checked 2026-09-10: [springdoc runtime Maven export](https://github.com/springdoc/springdoc-openapi-maven-plugin), [Maven lifecycle phases](https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html), [Spring Boot Maven plugin](https://docs.spring.io/spring-boot/3.5/maven-plugin/), and [Maven session start time](https://maven.apache.org/ref/3.9.9/maven-core/apidocs/org/apache/maven/execution/MavenSession.html).
+
+## 2026-09-10 - Discover Generated JSON Within An Explicit Maven Boundary
+
+Status: Accepted
+
+Production OpenAPI JSON comes only from SpringDoc or NextDoc4j. NextDoc4j itself uses SpringDoc/OpenAPI 3 as its engine; SmartDoc consumes exported JSON and does not integrate with its UI or internal APIs. The supported build entry point is Maven. Every target project explicitly selects the service identity, one owner module, the producer output directory, and a SmartDoc phase after that producer. Service/package/module/group relationships are never inferred.
+
+Add `documentsDirectory` to the Maven goal. It scans regular top-level `*.json` files in deterministic filename order and derives `documentId` from a safe lowercase filename stem. The files present define the current service input set; an absent or empty directory logs SKIPPED and does not invoke core. JSON content or groups that are absent are not invented. Retain explicit document entries as a mutually exclusive fallback when a target needs fixed IDs/paths and wants every listed group to be required. Remove the goal's default lifecycle phase so a target cannot accidentally run it before its chosen producer.
+
+Set the default output parent to `${project.build.directory}/generated-resources/smartdoc`, so Maven `clean` removes generated Skills. No durable cross-clean retention path is required. Runtime SpringDoc still needs compiled classes and a running application, so its verified ordering remains capture at `integration-test` and SmartDoc at `verify`; this is consistent with Maven-only target builds but is not ordinary `compile`.
+
+Evidence: the default-output descriptor test first failed against the former `target/smartdoc` value. Two directory-discovery tests then failed to compile before the parameter existed. The focused Mojo suite passes 8 tests after implementation. Full Maven and integration verification is recorded in TASKS.md.
+
+References checked 2026-09-10: [SpringDoc Maven plugin](https://github.com/springdoc/springdoc-openapi-maven-plugin), [NextDoc4j quick start](https://nextdoc4j.top/guide/start/started.html), and [NextDoc4j architecture](https://nextdoc4j.top/guide/).

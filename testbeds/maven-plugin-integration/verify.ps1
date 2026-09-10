@@ -2,7 +2,7 @@ $ErrorActionPreference = "Stop"
 
 $testbedRoot = (Resolve-Path $PSScriptRoot).Path
 $repositoryRoot = (Resolve-Path (Join-Path $testbedRoot "../..")).Path
-$outputRoot = Join-Path $testbedRoot "target/smartdoc"
+$outputRoot = Join-Path $testbedRoot "target/generated-resources/smartdoc"
 
 function Invoke-CheckedMaven([string] $workingDirectory, [string[]] $arguments) {
     Push-Location $workingDirectory
