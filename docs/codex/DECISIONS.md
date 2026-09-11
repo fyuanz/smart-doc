@@ -1,6 +1,14 @@
 # Decisions
 
-Current scope: product design v3.5.0 and the latest generated-input Maven decision below govern current work. Earlier decisions describe history; ZIP/download, CLI and package identity are deferred. The user-selected standalone Spring Boot fixture is implemented; it is not a production dependency.
+Current scope: product design v3.5.0 and the generated-input Maven decisions below govern the product. The 2026-09-11 testbed delivery decision narrows current acceptance. Earlier decisions describe history; ZIP/download, CLI and package identity are deferred. The user-selected standalone Spring Boot fixture is implemented; it is not a production dependency.
+
+## 2026-09-11 - Deliver The Existing Testbed Skill For Manual Frontend Use
+
+Status: Accepted
+
+The user selects the already created SpringDoc test application as the integration target for this delivery. Use its existing serviceId `springdoc-multi-package`, skillName `springdoc-multi-package-api`, sole owner POM, `target/generated-openapi` directory, and `verify` execution after runtime export. Build the current plugin, execute the real testbed Maven workflow, and hand off the complete generated directory for the user to copy into their frontend project.
+
+Defer real target POM adoption, target-specific multi-module/partial-build ownership, and target startup-policy changes. The user will perform frontend consumption; actual Codex discovery and multi-service frontend acceptance remain unverified. These deferred cases do not block the selected testbed artifact, and delivery does not claim full production/P5 acceptance. Preserve existing output-under-target and manual-copy behavior; no installer, distribution module, or generator change is needed.
 
 ## 2026-09-09 - Remove The Project-Local Documentation Skill
 

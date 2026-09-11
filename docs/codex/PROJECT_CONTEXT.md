@@ -4,7 +4,7 @@
 
 SmartDoc-Agent converts API documentation into a Skill for frontend development. Every configured compilation must trigger a Skill update, and Skill generation failure must not interrupt the business build. All other product work is deferred.
 
-The current source of truth is `docs/smartdoc-agent-design.md`, version 3.4.0. Microservices, multiple Java packages/modules, and multiple OpenAPI documents per service are required current scenarios. The previous compiler-plus-download-service scope remains superseded.
+The current source of truth is `docs/smartdoc-agent-design.md`, version 3.5.0. Microservices, multiple Java packages/modules, and multiple OpenAPI documents per service remain product scenarios. For the 2026-09-11 delivery, the user selects the existing SpringDoc testbed, defers target-specific integration, and will try the generated Skill in their own frontend projects. The previous compiler-plus-download-service scope remains superseded.
 
 ## Target Users
 
@@ -22,7 +22,7 @@ The current source of truth is `docs/smartdoc-agent-design.md`, version 3.4.0. M
 ## Current Status
 
 - Product scope v3.5 is the implementation baseline. Production providers are restricted to SpringDoc / NextDoc4j, builds use Maven, and each target POM explicitly owns its service/module/phase mapping.
-- The P0-P5 work plan is active. P0, P2, and P3 are complete; P4 is in progress with two verified input models and remaining target-specific gates.
+- P0, P2, and P3 are complete. P4 has two verified input models; remaining target-specific gates are deferred by the user. The current delivery is a freshly built testbed Skill for manual frontend use; actual P5 discovery and multi-service consumption remain unverified.
 - The Java 17 Maven parent exists and references `smartdoc-agent-core` plus `smartdoc-agent-maven-plugin`.
 - A new core POM and OpenApiInput validator pass 19 tests. Deleted legacy IR remains removed.
 - Root Maven project loading and test discovery work; 62 tests pass (19 input, 20 content-generation, 15 safe-publication, and 8 Maven-goal tests).
@@ -30,6 +30,7 @@ The current source of truth is `docs/smartdoc-agent-design.md`, version 3.4.0. M
 - A standalone two-service reactor verifies ordinary, repeated, targeted, parallel, and package-through-compile execution for authoritative static JSON, including input/configuration/write failures and preservation of Java compilation failures.
 - The target contract is fixed: SpringDoc / NextDoc4j produces JSON, SmartDoc runs afterward in the configured Maven module/phase, and output defaults to `target/generated-resources/smartdoc/` with no retention across `clean`.
 - The realistic fixture at `testbeds/springdoc-multi-package/` now also verifies a runtime export chain: package, application start, two springdoc Maven Plugin 1.5 captures, application stop, then Skill update at `verify`. A failed capture leaves old JSON in place but is rejected by the current-build check while the old Skill is retained. Application-start failure still belongs to the Spring Boot plugin and fails Maven.
+- On 2026-09-11, the user-selected testbed completed a fresh `clean verify` and published `testbeds/springdoc-multi-package/target/generated-resources/smartdoc/springdoc-multi-package-api/`: 19 files, two groups, four operations and seven document-local schemas. All 31 local links and both input digests were checked; the final update status is SUCCESS. The testbed README documents rebuilding and manually copying the complete folder into a frontend project's `.agents/skills/`.
 
 ## Commands
 

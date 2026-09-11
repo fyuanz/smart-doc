@@ -55,3 +55,68 @@ Skill 输出位于 `target/generated-resources/smartdoc/`，执行 `clean` 后�
 
 这条运行时路径要求 `mvn verify`；普通 `compile` 和 `package` 不会到达集成测试阶段。Spring Boot
 启动目标本身的失败仍会终止 Maven 构建，因此该样例是可复现的接入证据，不是默认生产配置。
+
+## 生成可复制的 Skill
+
+2026-09-11 的交付使用本测试项目。责任模块就是本目录的 `pom.xml`：
+`serviceId=springdoc-multi-package`，`skillName=springdoc-multi-package-api`，
+输入为 `target/generated-openapi/`，SmartDoc 在 `verify` 执行，且不向子模块继承。
+真实业务项目特有的多模块接入暂缓，前端使用由用户在其他项目中验证。
+
+只需生成成功产物时，从仓库根目录执行下面的 PowerShell 命令。先安装当前插件，再为测试应用选择
+空闲 HTTP/JMX 端口，运行完整 Maven 链路；不需要提前手动启动应用。
+
+```powershell
+mvn -B install
+if ($LASTEXITCODE -ne 0) { throw 'SmartDoc plugin build failed' }
+
+function Get-SkillBuildPort {
+    $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, 0)
+    try { $listener.Start(); return $listener.LocalEndpoint.Port } finally { $listener.Stop() }
+}
+$skillHttpPort = Get-SkillBuildPort
+do { $skillJmxPort = Get-SkillBuildPort } while ($skillJmxPort -eq $skillHttpPort)
+mvn -B -f testbeds/springdoc-multi-package/pom.xml clean `
+    "-Dsmartdoc.application.port=$skillHttpPort" "-Dsmartdoc.springdoc.port=$skillHttpPort" `
+    "-Dsmartdoc.jmx.port=$skillJmxPort" verify
+if ($LASTEXITCODE -ne 0) { throw 'SpringDoc testbed build failed' }
+
+$status = Get-Content -Raw -LiteralPath `
+    'testbeds/springdoc-multi-package/target/generated-resources/smartdoc/.smartdoc/status/springdoc-multi-package.json' |
+    ConvertFrom-Json
+if ($status.outcome -ne 'SUCCESS') { throw "Skill update failed: $($status.message)" }
+```
+
+确认日志先出现 `export-account` 和 `export-business`，应用停止后再出现一次
+`SmartDoc [springdoc-multi-package] SUCCESS`。Skill 更新失败不会使 Maven 失败，因此还要检查上述状态，
+不能仅凭 `BUILD SUCCESS` 判断 Skill 已刷新。故障注入验证继续使用前面的
+`verify-generated-integration.ps1`；它最后故意留下 FAILED 状态和保留的旧 Skill，交付前可用上述正常构建刷新。
+
+完整产物目录：
+
+```text
+testbeds/springdoc-multi-package/target/generated-resources/smartdoc/springdoc-multi-package-api/
+```
+
+将整个 `springdoc-multi-package-api` 文件夹复制到前端项目的 `.agents/skills/`，保持以下结构；
+其中整个 `references/`（包括 `source.json`）也需要一起复制。相邻的 `.smartdoc/` 是构建状态，不需要安装。
+
+```text
+<frontend-project>/.agents/skills/springdoc-multi-package-api/
+├── SKILL.md
+└── references/
+    ├── catalog.md
+    ├── source.json
+    └── documents/
+```
+
+Codex 从项目的 `.agents/skills/` 发现本地 Skill，未刷新时可重启 Codex，参见
+[官方 Skill 文档](https://learn.chatgpt.com/docs/build-skills)。可在前端项目中尝试：
+
+```text
+使用 springdoc-multi-package-api Skill，找到创建订单接口，解释必填字段，
+并按项目现有请求封装生成调用代码；标明服务与分组，缺失的契约信息不要猜测。
+```
+
+产物含 account/business 两组、4 个接口和 7 个分组内 Schema。它描述测试服务；示例服务器地址和认证
+元数据不代表真实业务环境。`clean` 会删除生成目录，复制到前端项目后的副本不会随此处重建自动更新。

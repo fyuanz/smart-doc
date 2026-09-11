@@ -4,6 +4,8 @@
 
 Scope review completed: one or more API documents per service → one frontend Skill per service, updated after SpringDoc / NextDoc4j in an explicitly configured Maven build, with generation failures isolated from the business build and other services. Product design v3.5.0 is the implementation baseline. P0, P2, and P3 are complete. P4 is in progress: directory discovery and a representative runtime SpringDoc route are verified; each target project supplies its concrete service/module/phase mapping.
 
+2026-09-11 delivery scope: the user selects the existing `testbeds/springdoc-multi-package` application to verify the Maven-to-Skill build. Real target POM integration and target-specific multi-module/partial-build cases are deferred. Deliver the complete generated Skill directory; the user will use it in other frontend projects. Actual P5 discovery and multi-service consumption are not acceptance gates for this delivery and must not be marked verified.
+
 ## Completed Tasks
 
 | Task | Acceptance |
@@ -28,10 +30,11 @@ Scope review completed: one or more API documents per service → one frontend S
 | P4 static-document Maven slice | Compile goal, repeat/package/targeted/parallel entry points, warnings, retention, and normal Java failure semantics pass in a standalone reactor |
 | P1.5 generated-document freshness slice | Runtime springdoc export order succeeds; failed capture cannot bless old JSON or replace the prior Skill |
 | Confirm generated-input Maven contract | SpringDoc / NextDoc4j only; Maven entry point; explicit service owner/phase; scanned JSON directory; clean-scoped generated-resources output |
+| Deliver the user-selected testbed Skill (2026-09-11) | Fresh runtime export and Skill publication pass; complete 19-file folder and manual frontend-copy instructions provided |
 
 ## Active Tasks
 
-P0, P2, and P3 are complete. The Maven goal and representative runtime SpringDoc route are implemented and verified. Provider, entry-point, output-retention, and mapping policy are now fixed; P1/P4 retain only target-application configuration and producer/startup failure evidence.
+P0, P2, and P3 are complete. The Maven goal and representative runtime SpringDoc route are implemented and verified. The requested testbed build and Skill handoff are complete; the user will try the artifact in their frontend projects. Remaining P1/P4 target-application configuration and producer/startup failure evidence are deferred, as is actual P5 consumption acceptance.
 
 P1.3 evidence:
 
@@ -48,13 +51,13 @@ Status vocabulary: **Ready** means it can be started; **In progress** means a ve
 | Stage | Deliverable | Dependencies | Status |
 | --- | --- | --- | --- |
 | P0 | Buildable core foundation and first tested input rule | Existing repository | Complete |
-| P1 | Verified current-document and Maven integration contract | Standalone testbeds; target configuration for generated documents | Contract complete; target POM application remains |
+| P1 | Verified current-document and Maven integration contract | Standalone testbeds; target configuration for generated documents | Contract/testbed complete; real target application deferred |
 | P2 | Usable per-service Skill from one or more documents | P0; independent of the target producer | Complete |
 | P3 | Complete service updates with observable failure and preserved output | P2 | Complete |
-| P4 | Real per-compilation integration, including multiple services/modules | P1 verified, P2, P3 | In progress; static compile and representative runtime verify paths pass |
-| P5 | End-to-end/frontend acceptance and minimal usage instructions | P4 | Pending |
+| P4 | Real per-compilation integration, including multiple services/modules | P1 verified, P2, P3 | Static compile and testbed runtime verify paths pass; target-specific remainder deferred |
+| P5 | End-to-end/frontend acceptance and minimal usage instructions | P4 | User will try the delivered Skill; discovery and multi-service acceptance deferred |
 
-P0, P2, and P3 are complete. The runtime fixture scans SpringDoc output at `verify` with current-session checks. Next apply the documented directory/owner/phase configuration in a target service and verify its producer/startup failure behavior before closing P1/P4.
+P0, P2, and P3 are complete. The selected runtime testbed scans SpringDoc output at `verify` with current-session checks. Its fresh Skill has been delivered; resume real target integration only when requested.
 
 ### P0 — Establish The Build And First Red-To-Green Slice
 
@@ -163,6 +166,7 @@ Exit evidence: P0-P4 checks pass, representative frontend tasks are recorded, an
 
 ## Blockers And Unknowns
 
+- No real target or frontend project path is required for the user-selected testbed delivery. The following are deferred production/frontend acceptance gaps, not blockers for generating that Skill.
 - Root Maven loading is repaired; no P0 blocker remains.
 - The target application and its current OpenAPI production configuration are absent; the fresh-document integration cannot be verified from this repository.
 - Actual target build entry points and final output destination need to be established before claiming end-to-end coverage.
@@ -176,7 +180,7 @@ P0, P2, and P3 are complete. P4's Maven entry point, JSON directory discovery, a
 
 ## Last Updated
 
-2026-09-10.
+2026-09-11.
 
 ## 2026-09-09 - Swagger UI Follow-up Completed
 
@@ -245,3 +249,13 @@ P0, P2, and P3 are complete. P4's Maven entry point, JSON directory discovery, a
 - The SpringDoc testbed now configures one `documentsDirectory` instead of naming account/business files. Its real generated integration verifier passes both successful discovery and stale-file rejection after failed capture. The static multi-service Maven matrix also passes with the new `target/generated-resources/smartdoc` output root.
 - Directory mode scans regular top-level `.json` files and uses safe lowercase filename stems as document IDs. Present files define the current set; an absent/empty directory produces no Skill. Explicit document entries remain mutually exclusive fallback configuration for fixed required paths/IDs.
 - Default Skill output is `${project.build.directory}/generated-resources/smartdoc/<skillName>/`, so Maven `clean` removes it. Fixture source metadata was refreshed after the POM change; account/business JSON bytes remain unchanged.
+
+## 2026-09-11 - Testbed Build And Skill Handoff Complete
+
+- The user explicitly chooses the existing SpringDoc testbed, defers target-specific cases, and will use the generated Skill in their own frontend projects. Existing POM configuration already satisfies this selected build; no generator or POM changes were needed.
+- `mvn -B install`: 62 tests passed, zero failures/errors. The testbed's initial sandbox build stopped at javac with the previously recorded resource-close error, before startup/export. Reinstalling the already tested plugin in the normal local Maven environment (`mvn -B -DskipTests install`) and rerunning the testbed resolved the environment issue without changing source or disabling testbed checks.
+- Successful command: `mvn -B -f testbeds/springdoc-multi-package/pom.xml clean -Dsmartdoc.application.port=55815 -Dsmartdoc.springdoc.port=55815 -Dsmartdoc.jmx.port=55816 verify`. Both ports were selected dynamically. Five testbed tests passed; build and final SmartDoc status are SUCCESS.
+- Build log order checked: application start → account capture → business capture → application stop → exactly one Skill update. Both generated JSON files precede the update attempt and their SHA-256 values match the Skill's source metadata. The started application process is no longer running.
+- Delivered directory: `testbeds/springdoc-multi-package/target/generated-resources/smartdoc/springdoc-multi-package-api/`. It contains 19 files, account/business groups, four operations, seven document-local schemas, and 31 verified local Markdown links. Input hashes: account `686c1b8b9d3cddbda2e1aac5186640e0532c24a179ca0baa9d553e4649326d87`; business `ae7e7d844839c0fc2604714c5f9fa147b609a864d53740f797145f2ad74c290c`.
+- The testbed README now documents a successful build, checking Skill status independently of Maven exit status, copying the complete folder into `.agents/skills/`, and a frontend prompt. Build artifacts/logs remain ignored; only documentation is committed. The successful local log is `target/testbed-skill-verified.log`.
+- This completes the current requested delivery. Real target integration and P5 discovery/multi-service frontend acceptance remain deferred, not passed. No frontend project was modified and no additional product stage was started.
