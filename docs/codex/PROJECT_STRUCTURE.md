@@ -6,8 +6,10 @@
 .
 |-- AGENTS.md
 |-- .gitignore
+|-- LICENSE                # MIT
 |-- docs/
 |   |-- smartdoc-agent-design.md
+|   |-- maven-central.md   # release coordinates, publishing and consumer setup
 |   `-- codex/
 |       |-- PROJECT_CONTEXT.md
 |       |-- PROJECT_STRUCTURE.md
@@ -39,6 +41,8 @@
 | `AGENTS.md` | First-read, test-first development, and documentation rules |
 | `docs/smartdoc-agent-design.md` | v3.5 scope, service/document boundaries, Maven updates, and acceptance |
 | `pom.xml` | Java 17 Maven parent; aggregates core and Maven plugin modules |
+| `LICENSE` | User-selected MIT license |
+| `docs/maven-central.md` | Maven Central release and plugin-consumption instructions |
 | `docs/codex/DECISIONS.md` | Historical and current scope decisions |
 
 P0 rebuilt the core POM and exact-version input boundary. P2 adds `SkillGenerator` and `DocumentReferences`; P3 adds `GeneratedSkillValidator` and `ServiceSkillUpdater`. P4 adds `smartdoc-agent-maven-plugin`, a static-input Maven lifecycle testbed, and a runtime springdoc `verify` probe with current-build input checks. Legacy IR remains deleted.

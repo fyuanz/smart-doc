@@ -1,5 +1,17 @@
 # Decisions
 
+## 2026-09-11 - Publish The Maven Reactor Under io.github.fyuanz
+
+Status: Accepted
+
+The user requests Maven Central publication and confirms `io.github.fyuanz`, release `1.0.0`, MIT licensing and signing identity `fyuan <624728873@qq.com>`. Migrate parent/core/plugin coordinates and testbed plugin references together. Keep Java packages unchanged and testbeds outside the published reactor. Attach sources and Javadoc, include MIT license in binary/source JARs, and inherit correct project/developer/SCM metadata from the root. Git tag `v1.0.0` identifies the release source.
+
+Use an opt-in `central-release` profile with Central Publishing Plugin 0.11.0, automatic publication and a wait for PUBLISHED. BC signing reads exported key material and passphrase from the process environment. A new password-protected RSA4096 signing key is held in the user's local GnuPG keyring; its public key is distributed through the supported Ubuntu keyserver. Credentials and the local helper are outside the project; stored credentials/passphrase use Windows user-bound DPAPI. Never include them in POMs, source JARs or commits.
+
+Verification before upload: 62 tests, binary/source/Javadoc content checks, nine PGP signature verifications, runtime SpringDoc consumption and two parallel static-document service updates under the new coordinate. Maven artifact publication is separately authorized here; it does not add Skill distribution/install management or reopen deferred target-specific/P5 work.
+
+Execution (2026-09-11): `invoke-release.ps1 -Phase deploy -Clean` uploaded the signed bundle; Central Portal deploymentId `a73c8db4-c37d-43e8-b288-05de5ea74500` reached `PUBLISHED` with empty errors/warnings, and all twelve published pom/jar/sources/javadoc/asc artifacts return HTTP 200 on `repo1.maven.org`. Central releases are immutable; later changes require a new version and a matching Git tag.
+
 Current scope: product design v3.5.0 and the generated-input Maven decisions below govern the product. The 2026-09-11 testbed delivery decision narrows current acceptance. Earlier decisions describe history; ZIP/download, CLI and package identity are deferred. The user-selected standalone Spring Boot fixture is implemented; it is not a production dependency.
 
 ## 2026-09-11 - Deliver The Existing Testbed Skill For Manual Frontend Use

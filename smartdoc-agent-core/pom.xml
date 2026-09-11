@@ -3,11 +3,13 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>com.smartdoc.agent</groupId>
+        <groupId>io.github.fyuanz</groupId>
         <artifactId>smart-doc-agent</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <version>1.0.0</version>
     </parent>
     <artifactId>smartdoc-agent-core</artifactId>
+    <name>SmartDoc Agent Core</name>
+    <description>Offline OpenAPI-to-Skill conversion and safe service publication.</description>
     <dependencies>
         <dependency><groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-databind</artifactId></dependency>
         <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><scope>test</scope></dependency>

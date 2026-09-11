@@ -34,6 +34,8 @@ Scope review completed: one or more API documents per service → one frontend S
 
 ## Active Tasks
 
+Maven Central release is complete (2026-09-11): the parent POM, core, and Maven plugin under `io.github.fyuanz:1.0.0` were signed, uploaded, and reached `PUBLISHED` on the Central Portal; all twelve pom/jar/sources/javadoc/asc artifacts return HTTP 200 on `repo1.maven.org`. See the release-completion entry below. The earlier testbed-only task remains complete.
+
 P0, P2, and P3 are complete. The Maven goal and representative runtime SpringDoc route are implemented and verified. The requested testbed build and Skill handoff are complete; the user will try the artifact in their frontend projects. Remaining P1/P4 target-application configuration and producer/startup failure evidence are deferred, as is actual P5 consumption acceptance.
 
 P1.3 evidence:
@@ -259,3 +261,21 @@ P0, P2, and P3 are complete. P4's Maven entry point, JSON directory discovery, a
 - Delivered directory: `testbeds/springdoc-multi-package/target/generated-resources/smartdoc/springdoc-multi-package-api/`. It contains 19 files, account/business groups, four operations, seven document-local schemas, and 31 verified local Markdown links. Input hashes: account `686c1b8b9d3cddbda2e1aac5186640e0532c24a179ca0baa9d553e4649326d87`; business `ae7e7d844839c0fc2604714c5f9fa147b609a864d53740f797145f2ad74c290c`.
 - The testbed README now documents a successful build, checking Skill status independently of Maven exit status, copying the complete folder into `.agents/skills/`, and a frontend prompt. Build artifacts/logs remain ignored; only documentation is committed. The successful local log is `target/testbed-skill-verified.log`.
 - This completes the current requested delivery. Real target integration and P5 discovery/multi-service frontend acceptance remain deferred, not passed. No frontend project was modified and no additional product stage was started.
+
+## 2026-09-11 - Maven Central Release Preparation
+
+- Migrated root/core/plugin coordinates to `io.github.fyuanz:...:1.0.0`; synchronized both testbeds' plugin references. Added MIT license, developer/SCM metadata, source/Javadoc attachments, signatures, and an opt-in Central publishing profile. No business Java behavior changed.
+- Signed local `-Pcentral-release install` passes all 62 tests. Both binary/source JAR pairs include MIT; Javadoc JARs contain generated documentation. Maven descriptor and core dependency use the new release coordinates; all nine PGP signatures verify. Javadoc reports missing-comment warnings but successfully generates both archives.
+- The initial missing-coordinate probe could not resolve the new plugin before installation. After migration/install, the SpringDoc testbed's `clean verify` passes five tests and generates a SUCCESS Skill via `smartdoc-agent:1.0.0`; both account/business frozen contracts are unchanged. Only producer POM metadata is refreshed.
+- `mvn -B -f testbeds/maven-plugin-integration/pom.xml -T 2 clean compile` succeeds for both service owners with the new plugin. When invoked from the repository root, this static fixture's configured output is the root `target/generated-resources/smartdoc/`; both status files were checked there.
+- Signing key created and public key distributed. Private credentials are outside Git. Local signing required accounting for the Git GnuPG stdin CRLF convention; the helper handles it and all resulting signatures were independently verified. This is publishing-environment setup, not a product behavior change.
+- Upload/public availability is pending at this checkpoint. Reference: `docs/maven-central.md`.
+
+## 2026-09-11 - Maven Central Release Completed
+
+- Release coordinates `io.github.fyuanz` version `1.0.0`, MIT. Published the root reactor only: parent POM `smart-doc-agent`, `smartdoc-agent-core`, and `smartdoc-agent-maven-plugin`.
+- Signed install verification: `invoke-release.ps1 -Phase install -Clean` ran all 62 tests with 0 failures/errors and produced all nine PGP signatures with the BC signer.
+- Upload and auto-publish: `invoke-release.ps1 -Phase deploy -Clean` uploaded the bundle; Central Portal returned deploymentId `a73c8db4-c37d-43e8-b288-05de5ea74500` with `autoPublish` enabled. The local `waitUntil=published` poll tracked `PENDING → PUBLISHING → PUBLISHED`; the deployment reached `PUBLISHED` (errors/warnings empty) after a short propagation window, and the background deploy task exited 0.
+- Public availability: all twelve key artifacts on `https://repo1.maven.org/maven2/io/github/fyuanz/...` return HTTP 200 — parent `smart-doc-agent-1.0.0.pom(+.asc)`, core `pom/jar/sources/javadoc(+.asc)`, and plugin `pom/jar/sources/javadoc(+.asc)`.
+- Published purls: `pkg:maven/io.github.fyuanz/smart-doc-agent@1.0.0`, `pkg:maven/io.github.fyuanz/smartdoc-agent-core@1.0.0`, `pkg:maven/io.github.fyuanz/smartdoc-agent-maven-plugin@1.0.0`.
+- Central releases are immutable; subsequent changes require a new version and a matching Git tag. Credentials and the local release helper remain outside the project; private signing material was not committed.

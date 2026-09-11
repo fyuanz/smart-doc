@@ -13,7 +13,9 @@
 
 ## Parent Project
 
-Coordinates: `com.smartdoc.agent:smart-doc-agent:1.0.0-SNAPSHOT`.
+Coordinates: `io.github.fyuanz:smart-doc-agent:1.0.0`. Core and Maven plugin inherit this group/version; their Java package names remain unchanged.
+
+The opt-in `central-release` profile attaches sources/Javadoc, signs all release files using Maven GPG's BC signer and publishes the three-module reactor through Central Publishing Plugin 0.11.0. Root MIT license, developer and SCM metadata are inherited; the license is also included in both binary/source JARs. Authentication and signing secrets remain outside the repository. `docs/maven-central.md` documents the publisher and consumer workflows.
 
 The parent describes OpenAPI-to-Skill conversion and aggregates core plus `smartdoc-agent-maven-plugin`. Core uses managed Jackson 2.16.1 and JUnit 5.10.2, compiler 3.13.0 and Surefire 3.2.5. The plugin uses Maven Plugin API 3.9.9 and Maven Plugin Tools 3.15.2. No legacy IR is restored.
 

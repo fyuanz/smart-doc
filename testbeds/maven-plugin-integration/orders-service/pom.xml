@@ -15,7 +15,7 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>com.smartdoc.agent</groupId>
+                <groupId>io.github.fyuanz</groupId>
                 <artifactId>smartdoc-agent-maven-plugin</artifactId>
                 <version>${smartdoc.plugin.version}</version>
                 <inherited>false</inherited>
